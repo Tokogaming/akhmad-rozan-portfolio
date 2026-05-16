@@ -1,6 +1,5 @@
 "use client";
 
-import AssetLogo from "@/components/AssetLogo";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -14,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import AssetLogo from "@/components/AssetLogo";
 
 type PortfolioAsset = {
   id: string;
@@ -181,7 +181,7 @@ export default function PortfolioAllocationCharts() {
 
     const interval = setInterval(() => {
       getPortfolio();
-    }, 60000);
+    }, 180000);
 
     return () => clearInterval(interval);
   }, []);
@@ -237,7 +237,6 @@ export default function PortfolioAllocationCharts() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        {/* Donut Chart */}
         <div className="glass rounded-[32px] p-6">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
@@ -288,15 +287,16 @@ export default function PortfolioAllocationCharts() {
                 className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
               >
                 <div className="flex items-center gap-3">
-                 <div className="relative">
-  <AssetLogo symbol={asset.symbol} size="xs" />
-  <span
-    className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border border-[#0b0d14]"
-    style={{
-      backgroundColor: chartColors[index % chartColors.length],
-    }}
-  />
-</div>
+                  <div className="relative">
+                    <AssetLogo symbol={asset.symbol} size="xs" />
+                    <span
+                      className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border border-[#0b0d14]"
+                      style={{
+                        backgroundColor:
+                          chartColors[index % chartColors.length],
+                      }}
+                    />
+                  </div>
 
                   <div>
                     <p className="text-sm font-black">{asset.symbol}</p>
@@ -312,7 +312,6 @@ export default function PortfolioAllocationCharts() {
           </div>
         </div>
 
-        {/* Bar Chart */}
         <div className="glass rounded-[32px] p-6">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
@@ -330,8 +329,14 @@ export default function PortfolioAllocationCharts() {
 
           <div className="h-[420px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 12, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+              <BarChart
+                data={chartData}
+                margin={{ top: 12, right: 10, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid
+                  stroke="rgba(255,255,255,0.08)"
+                  vertical={false}
+                />
 
                 <XAxis
                   dataKey="symbol"

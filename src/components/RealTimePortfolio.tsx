@@ -113,7 +113,7 @@ export default function RealTimePortfolio() {
 
     const interval = setInterval(() => {
       getPortfolio();
-    }, 60000);
+    }, 180000);
 
     return () => clearInterval(interval);
   }, []);
@@ -145,7 +145,6 @@ export default function RealTimePortfolio() {
 
   return (
     <section className="mt-16">
-      {/* Header */}
       <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_0.55fr] lg:items-end">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
@@ -177,7 +176,6 @@ export default function RealTimePortfolio() {
         </div>
       </div>
 
-      {/* Source Status */}
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
@@ -210,7 +208,6 @@ export default function RealTimePortfolio() {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="grid gap-6 md:grid-cols-3">
         <div className="glass rounded-[30px] p-7">
           <p className="text-sm font-bold text-zinc-400">Total Portfolio</p>
@@ -276,7 +273,6 @@ export default function RealTimePortfolio() {
         </div>
       </div>
 
-      {/* Crypto Section */}
       <div className="mt-12">
         <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
@@ -289,8 +285,8 @@ export default function RealTimePortfolio() {
           </div>
 
           <p className="max-w-xl text-sm leading-6 text-zinc-500">
-            Harga crypto diperbarui otomatis. Allocation berubah mengikuti
-            current value masing-masing aset.
+            Harga crypto diperbarui otomatis setiap beberapa menit. Allocation
+            berubah mengikuti current value masing-masing aset.
           </p>
         </div>
 
@@ -301,7 +297,6 @@ export default function RealTimePortfolio() {
         </div>
       </div>
 
-      {/* Stock Section */}
       <div className="mt-12">
         <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
@@ -326,7 +321,6 @@ export default function RealTimePortfolio() {
         </div>
       </div>
 
-      {/* Meme Basket */}
       <div className="mt-8 rounded-[30px] border border-yellow-300/20 bg-yellow-300/10 p-6">
         <p className="text-sm font-black uppercase tracking-[0.2em] text-yellow-300">
           Hidden Meme Coin Basket
@@ -372,11 +366,12 @@ function AssetCard({ asset }: { asset: PortfolioAsset }) {
             {asset.type}
           </p>
 
-         <div className="mt-2 flex items-center gap-3">
-  <AssetLogo symbol={asset.symbol} size="sm" />
-  <h3 className="text-2xl font-black">{asset.symbol}</h3>
-</div>
-          <p className="mt-1 min-h-[40px] text-sm leading-5 text-zinc-400">
+          <div className="mt-2 flex items-center gap-3">
+            <AssetLogo symbol={asset.symbol} size="sm" />
+            <h3 className="text-2xl font-black">{asset.symbol}</h3>
+          </div>
+
+          <p className="mt-2 min-h-[40px] text-sm leading-5 text-zinc-400">
             {asset.name}
           </p>
         </div>

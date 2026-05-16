@@ -1,5 +1,4 @@
 import CryptoHistoricalChart from "@/components/CryptoHistoricalChart";
-import LiveCryptoMarket from "@/components/LiveCryptoMarket";
 import PortfolioAllocationCharts from "@/components/PortfolioAllocationCharts";
 import RealTimePortfolio from "@/components/RealTimePortfolio";
 import Reveal from "@/components/Reveal";
@@ -62,10 +61,6 @@ export default function AssetsPage() {
 
       <Reveal>
         <CryptoHistoricalChart />
-      </Reveal>
-
-      <Reveal>
-        <LiveCryptoMarket />
       </Reveal>
 
       <Reveal>
