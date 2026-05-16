@@ -36,18 +36,138 @@ type PortfolioAsset = {
   lastUpdated?: number | null;
 };
 
-function num(value: string | undefined, fallback = 0) {
+function envNumber(key: string, fallback = 0) {
+  const value = process.env[key];
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function round(value: number, digit = 2) {
-  return Number(value.toFixed(digit));
+function round(value: number, digits = 2) {
+  return Number(value.toFixed(digits));
+}
+
+function makeCryptoAsset(params: {
+  id: string;
+  name: string;
+  symbol: string;
+  market?: CoinMarket;
+  amount: number;
+  avgBuyUsd: number;
+  usdIdr: number;
+}): PortfolioAsset {
+  const priceUsd = params.market?.usd ?? 0;
+  const priceIdr = params.market?.idr ?? priceUsd * params.usdIdr;
+
+  const currentValueUsd = params.amount * priceUsd;
+  const currentValueIdr = params.amount * priceIdr;
+
+  const costUsd = params.amount * params.avgBuyUsd;
+  const costIdr = costUsd * params.usdIdr;
+
+  const pnlUsd = currentValueUsd - costUsd;
+  const pnlIdr = currentValueIdr - costIdr;
+  const pnlPercent = costUsd > 0 ? (pnlUsd / costUsd) * 100 : 0;
+
+  return {
+    id: params.id,
+    name: params.name,
+    symbol: params.symbol,
+    type: "crypto",
+    source: "CoinGecko",
+    amount: params.amount,
+    amountLabel: `${params.amount} ${params.symbol}`,
+    priceUsd,
+    priceIdr,
+    currentValueUsd,
+    currentValueIdr,
+    pnlUsd,
+    pnlIdr,
+    pnlPercent,
+    allocationPercent: 0,
+    change24h: params.market?.usd_24h_change ?? 0,
+    lastUpdated: params.market?.last_updated_at ?? null,
+  };
+}
+
+function makeUsdStockAsset(params: {
+  id: string;
+  name: string;
+  symbol: string;
+  shares: number;
+  avgBuyUsd: number;
+  currentPriceUsd: number;
+  usdIdr: number;
+}): PortfolioAsset {
+  const currentValueUsd = params.shares * params.currentPriceUsd;
+  const currentValueIdr = currentValueUsd * params.usdIdr;
+
+  const costUsd = params.shares * params.avgBuyUsd;
+  const costIdr = costUsd * params.usdIdr;
+
+  const pnlUsd = currentValueUsd - costUsd;
+  const pnlIdr = currentValueIdr - costIdr;
+  const pnlPercent = costUsd > 0 ? (pnlUsd / costUsd) * 100 : 0;
+
+  return {
+    id: params.id,
+    name: params.name,
+    symbol: params.symbol,
+    type: "stock",
+    source: "Manual",
+    amount: params.shares,
+    amountLabel: `${params.shares} shares`,
+    priceUsd: params.currentPriceUsd,
+    priceIdr: params.currentPriceUsd * params.usdIdr,
+    currentValueUsd,
+    currentValueIdr,
+    pnlUsd,
+    pnlIdr,
+    pnlPercent,
+    allocationPercent: 0,
+  };
+}
+
+function makeIdrStockAsset(params: {
+  id: string;
+  name: string;
+  symbol: string;
+  shares: number;
+  avgBuyIdr: number;
+  currentPriceIdr: number;
+  usdIdr: number;
+}): PortfolioAsset {
+  const currentValueIdr = params.shares * params.currentPriceIdr;
+  const currentValueUsd = currentValueIdr / params.usdIdr;
+
+  const costIdr = params.shares * params.avgBuyIdr;
+  const costUsd = costIdr / params.usdIdr;
+
+  const pnlIdr = currentValueIdr - costIdr;
+  const pnlUsd = currentValueUsd - costUsd;
+  const pnlPercent = costIdr > 0 ? (pnlIdr / costIdr) * 100 : 0;
+
+  return {
+    id: params.id,
+    name: params.name,
+    symbol: params.symbol,
+    type: "stock",
+    source: "Manual",
+    amount: params.shares,
+    amountLabel: `${params.shares.toLocaleString("id-ID")} shares`,
+    priceUsd: params.currentPriceIdr / params.usdIdr,
+    priceIdr: params.currentPriceIdr,
+    currentValueUsd,
+    currentValueIdr,
+    pnlUsd,
+    pnlIdr,
+    pnlPercent,
+    allocationPercent: 0,
+  };
 }
 
 export async function GET() {
   try {
-    const usdIdr = num(process.env.USD_IDR, 16300);
+    const usdIdr = envNumber("USD_IDR", 16300);
 
     const cryptoUrl =
       "https://api.coingecko.com/api/v3/simple/price" +
@@ -78,178 +198,92 @@ export async function GET() {
 
     const market = (await response.json()) as CoinGeckoResponse;
 
-    const cryptoConfig = [
-      {
+    const assets: PortfolioAsset[] = [
+      makeCryptoAsset({
         id: "bitcoin",
         name: "Bitcoin",
         symbol: "BTC",
         market: market.bitcoin,
-        amount: num(process.env.BTC_AMOUNT),
-        avgBuyUsd: num(process.env.BTC_AVG_BUY_USD),
-      },
-      {
+        amount: envNumber("BTC_AMOUNT"),
+        avgBuyUsd: envNumber("BTC_AVG_BUY_USD"),
+        usdIdr,
+      }),
+      makeCryptoAsset({
         id: "ethereum",
         name: "Ethereum",
         symbol: "ETH",
         market: market.ethereum,
-        amount: num(process.env.ETH_AMOUNT),
-        avgBuyUsd: num(process.env.ETH_AVG_BUY_USD),
-      },
-      {
+        amount: envNumber("ETH_AMOUNT"),
+        avgBuyUsd: envNumber("ETH_AVG_BUY_USD"),
+        usdIdr,
+      }),
+      makeCryptoAsset({
         id: "solana",
         name: "Solana",
         symbol: "SOL",
         market: market.solana,
-        amount: num(process.env.SOL_AMOUNT),
-        avgBuyUsd: num(process.env.SOL_AVG_BUY_USD),
-      },
-      {
+        amount: envNumber("SOL_AMOUNT"),
+        avgBuyUsd: envNumber("SOL_AVG_BUY_USD"),
+        usdIdr,
+      }),
+      makeCryptoAsset({
         id: "binancecoin",
         name: "BNB",
         symbol: "BNB",
         market: market.binancecoin,
-        amount: num(process.env.BNB_AMOUNT),
-        avgBuyUsd: num(process.env.BNB_AVG_BUY_USD),
-      },
-    ];
-
-    const cryptoAssets: PortfolioAsset[] = cryptoConfig.map((asset) => {
-      const priceUsd = asset.market?.usd ?? 0;
-      const priceIdr = asset.market?.idr ?? priceUsd * usdIdr;
-
-      const currentValueUsd = asset.amount * priceUsd;
-      const currentValueIdr = asset.amount * priceIdr;
-
-      const costUsd = asset.amount * asset.avgBuyUsd;
-      const costIdr = costUsd * usdIdr;
-
-      const pnlUsd = currentValueUsd - costUsd;
-      const pnlIdr = currentValueIdr - costIdr;
-      const pnlPercent = costUsd > 0 ? (pnlUsd / costUsd) * 100 : 0;
-
-      return {
-        id: asset.id,
-        name: asset.name,
-        symbol: asset.symbol,
-        type: "crypto",
-        source: "CoinGecko",
-        amount: asset.amount,
-        amountLabel: `${asset.amount} ${asset.symbol}`,
-        priceUsd,
-        priceIdr,
-        currentValueUsd,
-        currentValueIdr,
-        pnlUsd,
-        pnlIdr,
-        pnlPercent,
-        allocationPercent: 0,
-        change24h: asset.market?.usd_24h_change ?? 0,
-        lastUpdated: asset.market?.last_updated_at ?? null,
-      };
-    });
-
-    const stockAssetsRaw = [
-      {
+        amount: envNumber("BNB_AMOUNT"),
+        avgBuyUsd: envNumber("BNB_AVG_BUY_USD"),
+        usdIdr,
+      }),
+      makeUsdStockAsset({
         id: "nvda",
         name: "NVIDIA Corporation",
         symbol: "NVDA",
-        shares: num(process.env.NVDA_SHARES),
-        avgBuyUsd: num(process.env.NVDA_AVG_BUY_USD),
-        currentPriceUsd: num(process.env.NVDA_CURRENT_PRICE_USD),
-      },
-      {
+        shares: envNumber("NVDA_SHARES"),
+        avgBuyUsd: envNumber("NVDA_AVG_BUY_USD"),
+        currentPriceUsd: envNumber("NVDA_CURRENT_PRICE_USD"),
+        usdIdr,
+      }),
+      makeIdrStockAsset({
         id: "bbca",
         name: "Bank Central Asia",
         symbol: "BBCA",
-        shares: num(process.env.BBCA_SHARES),
-        avgBuyIdr: num(process.env.BBCA_AVG_BUY_IDR),
-        currentPriceIdr: num(process.env.BBCA_CURRENT_PRICE_IDR),
-      },
-      {
+        shares: envNumber("BBCA_SHARES"),
+        avgBuyIdr: envNumber("BBCA_AVG_BUY_IDR"),
+        currentPriceIdr: envNumber("BBCA_CURRENT_PRICE_IDR"),
+        usdIdr,
+      }),
+      makeIdrStockAsset({
         id: "bbri",
         name: "Bank Rakyat Indonesia",
         symbol: "BBRI",
-        shares: num(process.env.BBRI_SHARES),
-        avgBuyIdr: num(process.env.BBRI_AVG_BUY_IDR),
-        currentPriceIdr: num(process.env.BBRI_CURRENT_PRICE_IDR),
-      },
+        shares: envNumber("BBRI_SHARES"),
+        avgBuyIdr: envNumber("BBRI_AVG_BUY_IDR"),
+        currentPriceIdr: envNumber("BBRI_CURRENT_PRICE_IDR"),
+        usdIdr,
+      }),
     ];
 
-    const nvda = stockAssetsRaw[0];
-    const nvdaCurrentValueUsd = nvda.shares * nvda.currentPriceUsd;
-    const nvdaCurrentValueIdr = nvdaCurrentValueUsd * usdIdr;
-    const nvdaCostUsd = nvda.shares * nvda.avgBuyUsd;
-    const nvdaCostIdr = nvdaCostUsd * usdIdr;
-
-    const stockAssets: PortfolioAsset[] = [
-      {
-        id: "nvda",
-        name: nvda.name,
-        symbol: nvda.symbol,
-        type: "stock",
-        source: "Manual",
-        amount: nvda.shares,
-        amountLabel: `${nvda.shares} shares`,
-        priceUsd: nvda.currentPriceUsd,
-        priceIdr: nvda.currentPriceUsd * usdIdr,
-        currentValueUsd: nvdaCurrentValueUsd,
-        currentValueIdr: nvdaCurrentValueIdr,
-        pnlUsd: nvdaCurrentValueUsd - nvdaCostUsd,
-        pnlIdr: nvdaCurrentValueIdr - nvdaCostIdr,
-        pnlPercent:
-          nvdaCostUsd > 0
-            ? ((nvdaCurrentValueUsd - nvdaCostUsd) / nvdaCostUsd) * 100
-            : 0,
-        allocationPercent: 0,
-      },
-    ];
-
-    for (const stock of stockAssetsRaw.slice(1)) {
-      const currentValueIdr = stock.shares * stock.currentPriceIdr;
-      const currentValueUsd = currentValueIdr / usdIdr;
-      const costIdr = stock.shares * stock.avgBuyIdr;
-      const costUsd = costIdr / usdIdr;
-
-      stockAssets.push({
-        id: stock.id,
-        name: stock.name,
-        symbol: stock.symbol,
-        type: "stock",
-        source: "Manual",
-        amount: stock.shares,
-        amountLabel: `${stock.shares.toLocaleString("id-ID")} shares`,
-        priceUsd: stock.currentPriceIdr / usdIdr,
-        priceIdr: stock.currentPriceIdr,
-        currentValueUsd,
-        currentValueIdr,
-        pnlUsd: currentValueUsd - costUsd,
-        pnlIdr: currentValueIdr - costIdr,
-        pnlPercent:
-          costIdr > 0 ? ((currentValueIdr - costIdr) / costIdr) * 100 : 0,
-        allocationPercent: 0,
-      });
-    }
-
-    const allAssets = [...cryptoAssets, ...stockAssets];
-
-    const totalValueUsd = allAssets.reduce(
+    const totalValueUsd = assets.reduce(
       (sum, asset) => sum + asset.currentValueUsd,
       0
     );
 
-    const totalValueIdr = allAssets.reduce(
+    const totalValueIdr = assets.reduce(
       (sum, asset) => sum + asset.currentValueIdr,
       0
     );
 
-    const totalPnlUsd = allAssets.reduce((sum, asset) => sum + asset.pnlUsd, 0);
-    const totalPnlIdr = allAssets.reduce((sum, asset) => sum + asset.pnlIdr, 0);
+    const totalPnlUsd = assets.reduce((sum, asset) => sum + asset.pnlUsd, 0);
+
+    const totalPnlIdr = assets.reduce((sum, asset) => sum + asset.pnlIdr, 0);
 
     const totalCostUsd = totalValueUsd - totalPnlUsd;
+
     const totalPnlPercent =
       totalCostUsd > 0 ? (totalPnlUsd / totalCostUsd) * 100 : 0;
 
-    const assetsWithAllocation = allAssets.map((asset) => ({
+    const assetsWithAllocation = assets.map((asset) => ({
       ...asset,
       priceUsd: round(asset.priceUsd),
       priceIdr: round(asset.priceIdr, 0),
@@ -290,7 +324,7 @@ export async function GET() {
         totalPnlPercent: round(totalPnlPercent),
       },
       memeCoinBasket: {
-        positions: num(process.env.MEMECOIN_POSITIONS, 37),
+        positions: envNumber("MEMECOIN_POSITIONS", 37),
         detailsHidden: true,
         valueIncluded: false,
       },
