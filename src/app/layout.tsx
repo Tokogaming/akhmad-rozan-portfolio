@@ -14,10 +14,70 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = "https://akhmad-rozan-portfolio.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Akhmad Rozan | Content Creator & Digital Asset Enthusiast",
+  metadataBase: new URL(siteUrl),
+
+  title: {
+    default: "Akhmad Rozan | Content Creator & Digital Asset Enthusiast",
+    template: "%s | Akhmad Rozan",
+  },
+
   description:
-    "Portfolio website for Akhmad Rozan, content creator, crypto enthusiast, and digital asset investor.",
+    "Portfolio website Akhmad Rozan, content creator, crypto enthusiast, and digital asset investor focused on content, crypto, market insight, and long-term digital growth.",
+
+  keywords: [
+    "Akhmad Rozan",
+    "Content Creator",
+    "Crypto Enthusiast",
+    "Digital Asset",
+    "Investor",
+    "Portfolio",
+    "Bitcoin",
+    "Ethereum",
+    "Solana",
+    "YouTube Creator",
+    "HERANOLOGI",
+  ],
+
+  authors: [{ name: "Akhmad Rozan", url: siteUrl }],
+  creator: "Akhmad Rozan",
+  publisher: "Akhmad Rozan",
+
+  alternates: {
+    canonical: siteUrl,
+  },
+
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    url: siteUrl,
+    siteName: "Akhmad Rozan Portfolio",
+    title: "Akhmad Rozan | Content Creator & Digital Asset Enthusiast",
+    description:
+      "Personal portfolio for content creation, crypto education, digital asset strategy, and long-term investment mindset.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Akhmad Rozan Portfolio Preview",
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Akhmad Rozan | Content Creator & Digital Asset Enthusiast",
+    description:
+      "Personal portfolio for content creation, crypto education, digital asset strategy, and long-term investment mindset.",
+    images: ["/opengraph-image"],
+  },
+
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
