@@ -1,4 +1,5 @@
 import LiveCryptoMarket from "@/components/LiveCryptoMarket";
+import PortfolioAllocationCharts from "@/components/PortfolioAllocationCharts";
 import RealTimePortfolio from "@/components/RealTimePortfolio";
 import Reveal from "@/components/Reveal";
 
@@ -52,6 +53,10 @@ export default function AssetsPage() {
 
       <Reveal>
         <RealTimePortfolio />
+      </Reveal>
+
+      <Reveal>
+        <PortfolioAllocationCharts />
       </Reveal>
 
       <Reveal>
