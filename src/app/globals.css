@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(124, 92, 255, 0.2), transparent 32%),
+    radial-gradient(circle at top right, rgba(247, 201, 72, 0.14), transparent 28%),
+    #05070d;
+  color: white;
+}
+
+::selection {
+  background: #f7c948;
+  color: #111111;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #05070d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(247, 201, 72, 0.45);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(247, 201, 72, 0.75);
+}
+
+.glass {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+}
+
+.gold-text {
+  background: linear-gradient(135deg, #ffffff, #f7c948);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth clickable experience */
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #f7c948;
+  outline-offset: 4px;
+}
+
+/* Prevent chart and card overflow */
+.recharts-wrapper,
+.recharts-surface {
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  body {
+    background:
+      radial-gradient(circle at top, rgba(247, 201, 72, 0.12), transparent 34%),
+      #05070d;
+  }
+}
