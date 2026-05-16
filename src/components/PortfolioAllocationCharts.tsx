@@ -1,5 +1,6 @@
 "use client";
 
+import AssetLogo from "@/components/AssetLogo";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -287,12 +288,15 @@ export default function PortfolioAllocationCharts() {
                 className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
               >
                 <div className="flex items-center gap-3">
-                  <span
-                    className="h-3 w-3 rounded-full"
-                    style={{
-                      backgroundColor: chartColors[index % chartColors.length],
-                    }}
-                  />
+                 <div className="relative">
+  <AssetLogo symbol={asset.symbol} size="xs" />
+  <span
+    className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border border-[#0b0d14]"
+    style={{
+      backgroundColor: chartColors[index % chartColors.length],
+    }}
+  />
+</div>
 
                   <div>
                     <p className="text-sm font-black">{asset.symbol}</p>

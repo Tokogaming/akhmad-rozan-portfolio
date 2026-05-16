@@ -1,3 +1,4 @@
+import CryptoHistoricalChart from "@/components/CryptoHistoricalChart";
 import LiveCryptoMarket from "@/components/LiveCryptoMarket";
 import PortfolioAllocationCharts from "@/components/PortfolioAllocationCharts";
 import RealTimePortfolio from "@/components/RealTimePortfolio";
@@ -17,8 +18,8 @@ export default function AssetsPage() {
 
         <p className="mt-6 text-lg leading-8 text-zinc-400">
           Dashboard personal untuk melihat holdings, current value, profit/loss,
-          allocation, harga crypto real-time, dan posisi saham manual dalam satu
-          tampilan portfolio.
+          allocation, chart historical, harga crypto real-time, dan posisi saham
+          manual dalam satu tampilan portfolio.
         </p>
 
         <div className="mx-auto mt-8 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
@@ -42,10 +43,10 @@ export default function AssetsPage() {
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-300">
-              Allocation
+              Charts
             </p>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              Auto-calculated.
+              Allocation + historical.
             </p>
           </div>
         </div>
@@ -60,6 +61,10 @@ export default function AssetsPage() {
       </Reveal>
 
       <Reveal>
+        <CryptoHistoricalChart />
+      </Reveal>
+
+      <Reveal>
         <LiveCryptoMarket />
       </Reveal>
 
@@ -70,11 +75,11 @@ export default function AssetsPage() {
           </p>
 
           <p className="mt-4 leading-7 text-zinc-400">
-            Data portfolio, holdings, profit/loss, dan asset allocation pada
-            halaman ini digunakan untuk kebutuhan visual portfolio dan personal
-            branding. Market data crypto diambil dari API pihak ketiga dan dapat
-            berubah sewaktu-waktu. Informasi ini bukan merupakan ajakan membeli,
-            menjual, atau financial advice.
+            Data portfolio, holdings, profit/loss, asset allocation, dan chart
+            historical pada halaman ini digunakan untuk kebutuhan visual
+            portfolio dan personal branding. Market data crypto diambil dari API
+            pihak ketiga dan dapat berubah sewaktu-waktu. Informasi ini bukan
+            merupakan ajakan membeli, menjual, atau financial advice.
           </p>
         </div>
       </Reveal>

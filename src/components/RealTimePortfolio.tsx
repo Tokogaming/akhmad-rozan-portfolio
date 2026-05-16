@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import AssetLogo from "@/components/AssetLogo";
 
 type PortfolioAsset = {
   id: string;
@@ -371,8 +372,10 @@ function AssetCard({ asset }: { asset: PortfolioAsset }) {
             {asset.type}
           </p>
 
-          <h3 className="mt-2 text-2xl font-black">{asset.symbol}</h3>
-
+         <div className="mt-2 flex items-center gap-3">
+  <AssetLogo symbol={asset.symbol} size="sm" />
+  <h3 className="text-2xl font-black">{asset.symbol}</h3>
+</div>
           <p className="mt-1 min-h-[40px] text-sm leading-5 text-zinc-400">
             {asset.name}
           </p>
