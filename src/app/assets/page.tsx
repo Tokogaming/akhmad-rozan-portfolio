@@ -4,7 +4,7 @@ import Reveal from "@/components/Reveal";
 
 export default function AssetsPage() {
   return (
-    <section className="mx-auto w-[min(1180px,92%)] py-24">
+    <section className="mx-auto w-[min(1180px,92%)] pb-24 pt-32">
       <Reveal className="mx-auto max-w-3xl text-center">
         <p className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
           Asset Allocation
@@ -19,6 +19,35 @@ export default function AssetsPage() {
           allocation, harga crypto real-time, dan posisi saham manual dalam satu
           tampilan portfolio.
         </p>
+
+        <div className="mx-auto mt-8 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-300">
+              Crypto
+            </p>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
+              Real-time market price.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-300">
+              Stocks
+            </p>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
+              Manual price input.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-300">
+              Allocation
+            </p>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
+              Auto-calculated.
+            </p>
+          </div>
+        </div>
       </Reveal>
 
       <Reveal>
@@ -30,7 +59,7 @@ export default function AssetsPage() {
       </Reveal>
 
       <Reveal>
-        <div className="mt-16 rounded-[28px] border border-yellow-300/20 bg-yellow-300/10 p-6">
+        <div className="mt-16 rounded-[30px] border border-yellow-300/20 bg-yellow-300/10 p-6">
           <p className="text-sm font-black uppercase tracking-[0.2em] text-yellow-300">
             Portfolio Disclaimer
           </p>
