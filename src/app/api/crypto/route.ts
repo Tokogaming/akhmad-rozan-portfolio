@@ -15,13 +15,14 @@ type CoinGeckoResponse = {
   bitcoin?: CoinGeckoCoin;
   ethereum?: CoinGeckoCoin;
   solana?: CoinGeckoCoin;
+  binancecoin?: CoinGeckoCoin;
 };
 
 export async function GET() {
   try {
     const url =
       "https://api.coingecko.com/api/v3/simple/price" +
-      "?ids=bitcoin,ethereum,solana" +
+      "?ids=bitcoin,ethereum,solana,binancecoin" +
       "&vs_currencies=usd,idr" +
       "&include_market_cap=true" +
       "&include_24hr_vol=true" +
@@ -84,6 +85,17 @@ export async function GET() {
         change24h: data.solana?.usd_24h_change ?? 0,
         lastUpdated: data.solana?.last_updated_at ?? null,
       },
+      {
+        id: "binancecoin",
+        name: "BNB",
+        symbol: "BNB",
+        priceUsd: data.binancecoin?.usd ?? 0,
+        priceIdr: data.binancecoin?.idr ?? 0,
+        marketCapUsd: data.binancecoin?.usd_market_cap ?? 0,
+        volumeUsd: data.binancecoin?.usd_24h_vol ?? 0,
+        change24h: data.binancecoin?.usd_24h_change ?? 0,
+        lastUpdated: data.binancecoin?.last_updated_at ?? null,
+      },
     ];
 
     return NextResponse.json({
@@ -92,7 +104,7 @@ export async function GET() {
       updatedAt: new Date().toISOString(),
       data: formattedData,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         success: false,
