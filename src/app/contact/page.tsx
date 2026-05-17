@@ -1,253 +1,184 @@
 import {
-  ArrowRight,
-  Camera,
-  Mail,
-  MessageCircle,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  Video,
-} from "lucide-react";
-import Reveal from "@/components/Reveal";
-import { socials } from "@/lib/data";
+  FaInstagram,
+  FaTelegramPlane,
+  FaWhatsapp,
+  FaYoutube,
+} from "react-icons/fa";
+import { SiGmail } from "react-icons/si";
+import type { IconType } from "react-icons";
 
-const iconMap = {
-  WhatsApp: MessageCircle,
-  Telegram: Send,
-  Email: Mail,
-  YouTube: Video,
-  Instagram: Camera,
+type ContactChannel = {
+  label: string;
+  value: string;
+  description: string;
+  href: string;
+  icon: IconType;
+  iconColor: string;
+  iconBg: string;
+  borderGlow: string;
 };
 
-const contactHighlights = [
+const contactChannels: ContactChannel[] = [
   {
-    title: "Open for Collaboration",
-    text: "Terbuka untuk kerja sama konten, networking, diskusi crypto, digital asset, dan personal brand.",
-    icon: Users,
+    label: "WhatsApp",
+    value: "+62 851-4350-9045",
+    description: "Klik untuk membuka WhatsApp secara langsung.",
+    href: "https://wa.me/6285143509045",
+    icon: FaWhatsapp,
+    iconColor: "text-[#25D366]",
+    iconBg: "bg-[#25D366]/12",
+    borderGlow: "hover:border-[#25D366]/40 hover:shadow-[#25D366]/10",
   },
   {
-    title: "Business Inquiry",
-    text: "Untuk kerja sama profesional, sponsorship, partnership, atau peluang kolaborasi digital.",
-    icon: ShieldCheck,
+    label: "Telegram",
+    value: "@Rozan39",
+    description: "Klik untuk membuka Telegram secara langsung.",
+    href: "https://t.me/Rozan39",
+    icon: FaTelegramPlane,
+    iconColor: "text-[#229ED9]",
+    iconBg: "bg-[#229ED9]/12",
+    borderGlow: "hover:border-[#229ED9]/40 hover:shadow-[#229ED9]/10",
   },
   {
-    title: "Creator Networking",
-    text: "Cocok untuk diskusi seputar YouTube, content strategy, digital growth, dan market education.",
-    icon: Sparkles,
+    label: "Email",
+    value: "akhmadrozan8@gmail.com",
+    description: "Klik untuk membuka Email secara langsung.",
+    href: "mailto:akhmadrozan8@gmail.com",
+    icon: SiGmail,
+    iconColor: "text-[#EA4335]",
+    iconBg: "bg-[#EA4335]/12",
+    borderGlow: "hover:border-[#EA4335]/40 hover:shadow-[#EA4335]/10",
+  },
+  {
+    label: "YouTube",
+    value: "@heranologi",
+    description: "Klik untuk membuka YouTube secara langsung.",
+    href: "https://www.youtube.com/@heranologi",
+    icon: FaYoutube,
+    iconColor: "text-[#FF0000]",
+    iconBg: "bg-[#FF0000]/12",
+    borderGlow: "hover:border-[#FF0000]/40 hover:shadow-[#FF0000]/10",
+  },
+  {
+    label: "Instagram",
+    value: "@jjannz36",
+    description: "Klik untuk membuka Instagram secara langsung.",
+    href: "https://www.instagram.com/jjannz36",
+    icon: FaInstagram,
+    iconColor: "text-[#E4405F]",
+    iconBg: "bg-[#E4405F]/12",
+    borderGlow: "hover:border-[#E4405F]/40 hover:shadow-[#E4405F]/10",
   },
 ];
 
 export default function ContactPage() {
-  const whatsapp = socials.find((social) => social.label === "WhatsApp");
-  const email = socials.find((social) => social.label === "Email");
-
   return (
-    <section className="mx-auto w-[min(1180px,92%)] py-24">
-      {/* Header */}
-      <div className="grid gap-12 lg:grid-cols-[1fr_0.85fr] lg:items-center">
-        <Reveal>
-          <div className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
-            <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_#34d399]" />
-            Open for Collaboration
-          </div>
+    <main className="relative min-h-screen overflow-hidden bg-[#05060b] text-white">
+      <div className="pointer-events-none absolute left-[-16rem] top-32 h-[34rem] w-[34rem] rounded-full bg-purple-700/20 blur-[120px]" />
+      <div className="pointer-events-none absolute right-[-18rem] top-40 h-[38rem] w-[38rem] rounded-full bg-yellow-400/10 blur-[130px]" />
+      <div className="pointer-events-none absolute bottom-[-16rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-zinc-500/10 blur-[120px]" />
 
-          <h1 className="mt-6 text-5xl font-black leading-[1.08] tracking-[-0.05em] md:text-7xl">
-            Let&apos;s connect and build something valuable.
-          </h1>
-
-          <p className="mt-7 max-w-2xl text-lg leading-8 text-zinc-400">
-            Untuk kerja sama, networking, diskusi content creation, crypto,
-            digital asset, atau personal brand, kamu bisa menghubungi saya
-            melalui channel resmi berikut.
-          </p>
-
-          <div className="mt-9 flex flex-wrap gap-4">
-            {whatsapp && (
-              <a
-                href={whatsapp.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl bg-yellow-300 px-6 py-4 font-black text-black transition hover:-translate-y-1 hover:bg-yellow-200"
-              >
-                Chat WhatsApp
-                <ArrowRight size={18} />
-              </a>
-            )}
-
-            {email && (
-              <a
-                href={email.href}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 font-black text-white transition hover:-translate-y-1 hover:bg-white/10"
-              >
-                Send Email
-                <Mail size={18} />
-              </a>
-            )}
-          </div>
-        </Reveal>
-
-        {/* Contact Summary Card */}
-        <Reveal delay={0.15}>
-          <div className="glass relative overflow-hidden rounded-[36px] p-8">
-            <div className="absolute right-[-80px] top-[-80px] h-56 w-56 rounded-full bg-yellow-300/10 blur-3xl" />
-            <div className="absolute bottom-[-100px] left-[-100px] h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
-
-            <div className="relative">
-              <p className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
-                Contact Purpose
-              </p>
-
-              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em]">
-                Creator x Investor Communication Hub
-              </h2>
-
-              <p className="mt-5 leading-8 text-zinc-400">
-                Halaman ini dibuat sebagai pusat kontak profesional untuk
-                collaboration, business inquiry, networking, dan diskusi seputar
-                digital asset.
-              </p>
-            </div>
-
-            <div className="relative mt-8 grid gap-4">
-              {[
-                "Content collaboration",
-                "Crypto & digital asset discussion",
-                "Personal brand networking",
-                "Business inquiry",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4"
-                >
-                  <span className="h-2 w-2 rounded-full bg-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.7)]" />
-                  <p className="text-sm font-bold text-zinc-300">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
-      </div>
-
-      {/* Contact Channels */}
-      <div className="mt-20">
-        <Reveal className="max-w-3xl">
-          <p className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
+      <section className="relative mx-auto w-full max-w-7xl px-6 pb-24 pt-24 md:px-10 md:pt-32">
+        <div className="max-w-4xl">
+          <p className="text-sm font-black uppercase tracking-[0.42em] text-yellow-300">
             Official Channels
           </p>
 
-          <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] md:text-5xl">
+          <h1 className="mt-6 max-w-4xl text-5xl font-black leading-[0.96] tracking-[-0.06em] text-white md:text-7xl">
             Choose the best way to reach me.
-          </h2>
+          </h1>
 
-          <p className="mt-5 leading-8 text-zinc-400">
+          <p className="mt-7 max-w-3xl text-lg leading-9 text-zinc-400">
             Semua link di bawah sudah diarahkan ke kontak dan sosial media yang
             aktif. Pilih channel sesuai kebutuhan kamu.
           </p>
-        </Reveal>
+        </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {socials.map((social, index) => {
-            const Icon = iconMap[social.label as keyof typeof iconMap];
+        <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {contactChannels.map((channel) => {
+            const Icon = channel.icon;
 
             return (
-              <Reveal key={social.label} delay={index * 0.07}>
-                <a
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="glass group flex h-full gap-5 rounded-[28px] p-6 transition hover:-translate-y-2 hover:border-yellow-300/40"
-                >
-                  <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-yellow-300 text-black">
-                    <Icon size={24} />
+              <a
+                key={channel.label}
+                href={channel.href}
+                target={channel.href.startsWith("mailto:") ? undefined : "_blank"}
+                rel={
+                  channel.href.startsWith("mailto:")
+                    ? undefined
+                    : "noopener noreferrer"
+                }
+                className={`group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.045] p-7 shadow-2xl shadow-black/20 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white/[0.07] ${channel.borderGlow}`}
+              >
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-yellow-300/[0.04] opacity-0 transition duration-300 group-hover:opacity-100" />
+
+                <div className="relative flex items-start gap-5">
+                  <div
+                    className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 ${channel.iconBg} shadow-lg`}
+                  >
+                    <Icon className={`text-3xl ${channel.iconColor}`} />
                   </div>
 
-                  <div>
-                    <p className="text-sm font-bold text-zinc-400">
-                      {social.label}
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-zinc-400">
+                      {channel.label}
                     </p>
 
-                    <h3 className="mt-2 text-xl font-black group-hover:text-yellow-300">
-                      {social.value}
-                    </h3>
+                    <p className="mt-3 break-words text-2xl font-black leading-tight tracking-[-0.03em] text-white">
+                      {channel.value}
+                    </p>
 
-                    <p className="mt-3 text-sm leading-6 text-zinc-500">
-                      Klik untuk membuka {social.label} secara langsung.
+                    <p className="mt-5 max-w-sm text-base leading-8 text-zinc-500">
+                      {channel.description}
                     </p>
                   </div>
-                </a>
-              </Reveal>
+                </div>
+              </a>
             );
           })}
         </div>
-      </div>
 
-      {/* Contact Highlights */}
-      <div className="mt-20 grid gap-6 md:grid-cols-3">
-        {contactHighlights.map((item, index) => {
-          const Icon = item.icon;
+        <div className="mt-20 grid gap-6 lg:grid-cols-3">
+          <div className="rounded-[28px] border border-yellow-300/20 bg-yellow-300/[0.07] p-7">
+            <p className="text-sm font-black uppercase tracking-[0.32em] text-yellow-300">
+              Fast Response
+            </p>
+            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
+              WhatsApp & Telegram
+            </h2>
+            <p className="mt-4 leading-8 text-zinc-400">
+              Cocok untuk komunikasi cepat, diskusi project, atau kebutuhan
+              kolaborasi langsung.
+            </p>
+          </div>
 
-          return (
-            <Reveal key={item.title} delay={index * 0.1}>
-              <article className="glass h-full rounded-[28px] p-7 transition hover:-translate-y-2 hover:border-yellow-300/30">
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/5 text-yellow-300">
-                  <Icon size={25} />
-                </div>
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.045] p-7">
+            <p className="text-sm font-black uppercase tracking-[0.32em] text-yellow-300">
+              Business
+            </p>
+            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
+              Email Contact
+            </h2>
+            <p className="mt-4 leading-8 text-zinc-400">
+              Cocok untuk penawaran kerja sama, proposal, undangan, atau
+              komunikasi yang lebih formal.
+            </p>
+          </div>
 
-                <h3 className="mt-6 text-xl font-black">{item.title}</h3>
-
-                <p className="mt-4 leading-7 text-zinc-400">{item.text}</p>
-              </article>
-            </Reveal>
-          );
-        })}
-      </div>
-
-      {/* Final CTA */}
-      <Reveal>
-        <div className="mt-20 rounded-[32px] border border-yellow-300/20 bg-yellow-300 p-8 text-black md:p-10">
-          <div className="grid gap-6 lg:grid-cols-[1fr_0.5fr] lg:items-center">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.2em]">
-                Ready to Connect
-              </p>
-
-              <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] md:text-5xl">
-                Punya ide kolaborasi atau ingin diskusi digital asset?
-              </h2>
-
-              <p className="mt-5 max-w-3xl leading-8 text-black/70">
-                Hubungi saya melalui WhatsApp atau email untuk pembahasan yang
-                lebih jelas dan profesional.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {whatsapp && (
-                <a
-                  href={whatsapp.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-4 font-black text-white transition hover:-translate-y-1"
-                >
-                  WhatsApp Me
-                  <MessageCircle size={18} />
-                </a>
-              )}
-
-              {email && (
-                <a
-                  href={email.href}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-black/20 bg-white/30 px-6 py-4 font-black text-black transition hover:-translate-y-1"
-                >
-                  Email Me
-                  <Mail size={18} />
-                </a>
-              )}
-            </div>
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.045] p-7">
+            <p className="text-sm font-black uppercase tracking-[0.32em] text-yellow-300">
+              Social Media
+            </p>
+            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
+              YouTube & Instagram
+            </h2>
+            <p className="mt-4 leading-8 text-zinc-400">
+              Cocok untuk melihat konten, personal brand, update visual, dan
+              aktivitas publik.
+            </p>
           </div>
         </div>
-      </Reveal>
-    </section>
+      </section>
+    </main>
   );
 }
