@@ -84,6 +84,110 @@ function normalizePoints(points: ChartPoint[]) {
     .sort((a, b) => a.timestamp - b.timestamp);
 }
 
+function getPriceDomain(points: ChartPoint[]) {
+  const prices = points.map((point) => point.price);
+
+  if (prices.length === 0) {
+    return {
+      minDomain: 0,
+      maxDomain: 1,
+      range: 1,
+    };
+  }
+
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const rawRange = Math.max(maxPrice - minPrice, maxPrice * 0.015, 1);
+  const padding = rawRange * 0.32;
+
+  const minDomain = Math.max(0, minPrice - padding);
+  const maxDomain = maxPrice + padding;
+  const range = Math.max(maxDomain - minDomain, 1);
+
+  return {
+    minDomain,
+    maxDomain,
+    range,
+  };
+}
+
+function getChartCoords(points: ChartPoint[]) {
+  const viewWidth = 800;
+  const plotLeft = 42;
+  const plotRight = 34;
+  const plotTop = 34;
+  const plotBottom = 260;
+  const plotWidth = viewWidth - plotLeft - plotRight;
+  const plotHeight = plotBottom - plotTop;
+
+  const domain = getPriceDomain(points);
+
+  return points.map((point, index) => {
+    const x =
+      points.length === 1
+        ? plotLeft + plotWidth / 2
+        : plotLeft + (index / (points.length - 1)) * plotWidth;
+
+    const y =
+      plotBottom -
+      ((point.price - domain.minDomain) / domain.range) * plotHeight;
+
+    return {
+      x,
+      y,
+    };
+  });
+}
+
+function buildLinePath(points: ChartPoint[]) {
+  const coords = getChartCoords(points);
+
+  if (coords.length === 0) return "";
+
+  if (coords.length === 1) {
+    return `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(2)}`;
+  }
+
+  if (coords.length === 2) {
+    return `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(
+      2
+    )} L ${coords[1].x.toFixed(2)} ${coords[1].y.toFixed(2)}`;
+  }
+
+  let path = `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(2)}`;
+
+  for (let index = 1; index < coords.length - 1; index += 1) {
+    const current = coords[index];
+    const next = coords[index + 1];
+    const midX = (current.x + next.x) / 2;
+    const midY = (current.y + next.y) / 2;
+
+    path += ` Q ${current.x.toFixed(2)} ${current.y.toFixed(
+      2
+    )} ${midX.toFixed(2)} ${midY.toFixed(2)}`;
+  }
+
+  const last = coords[coords.length - 1];
+  path += ` T ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
+
+  return path;
+}
+
+function buildAreaPath(points: ChartPoint[]) {
+  const linePath = buildLinePath(points);
+  const coords = getChartCoords(points);
+
+  if (!linePath || coords.length === 0) return "";
+
+  const first = coords[0];
+  const last = coords[coords.length - 1];
+  const plotBottom = 260;
+
+  return `${linePath} L ${last.x.toFixed(2)} ${plotBottom} L ${first.x.toFixed(
+    2
+  )} ${plotBottom} Z`;
+}
+
 function getStats(points: ChartPoint[]) {
   if (points.length === 0) {
     return {
@@ -111,51 +215,6 @@ function getStats(points: ChartPoint[]) {
   };
 }
 
-function buildLinePath(points: ChartPoint[]) {
-  if (points.length === 0) return "";
-
-  const viewWidth = 800;
-  const plotLeft = 36;
-  const plotRight = 28;
-  const plotTop = 28;
-  const plotBottom = 266;
-  const plotWidth = viewWidth - plotLeft - plotRight;
-  const plotHeight = plotBottom - plotTop;
-
-  const prices = points.map((point) => point.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const range = maxPrice - minPrice || 1;
-
-  return points
-    .map((point, index) => {
-      const x =
-        points.length === 1
-          ? plotLeft + plotWidth / 2
-          : plotLeft + (index / (points.length - 1)) * plotWidth;
-
-      const y = plotBottom - ((point.price - minPrice) / range) * plotHeight;
-
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
-}
-
-function buildAreaPath(points: ChartPoint[]) {
-  const linePath = buildLinePath(points);
-
-  if (!linePath) return "";
-
-  const plotLeft = 36;
-  const plotRight = 28;
-  const plotBottom = 266;
-  const plotWidth = 800 - plotLeft - plotRight;
-
-  return `${linePath} L ${(plotLeft + plotWidth).toFixed(
-    2
-  )} ${plotBottom} L ${plotLeft} ${plotBottom} Z`;
-}
-
 function ChartSvg({
   points,
   period,
@@ -167,15 +226,12 @@ function ChartSvg({
 }) {
   const linePath = buildLinePath(points);
   const areaPath = buildAreaPath(points);
-
-  const prices = points.map((point) => point.price);
-  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-  const range = maxPrice - minPrice || 1;
+  const domain = getPriceDomain(points);
+  const stats = getStats(points);
 
   const yTicks = [0, 0.33, 0.66, 1].map((ratio) => {
-    const value = maxPrice - range * ratio;
-    const y = 28 + ratio * (266 - 28);
+    const value = domain.maxDomain - domain.range * ratio;
+    const y = 34 + ratio * (260 - 34);
 
     return {
       y,
@@ -193,18 +249,16 @@ function ChartSvg({
         ].filter(Boolean)
       : [];
 
-  const stats = getStats(points);
-
   if (points.length === 0) {
     return (
-      <div className="flex h-[360px] items-center justify-center rounded-3xl border border-white/10 bg-black/10 text-sm text-zinc-500">
+      <div className="flex h-[330px] items-center justify-center rounded-3xl border border-white/10 bg-black/10 text-sm text-zinc-500 sm:h-[380px]">
         Stock historical data belum tersedia.
       </div>
     );
   }
 
   return (
-    <div className="relative h-[380px] overflow-hidden rounded-3xl border border-white/10 bg-black/10 p-4">
+    <div className="relative h-[330px] overflow-hidden rounded-3xl border border-white/10 bg-black/10 p-4 sm:h-[380px]">
       <svg
         className="h-full w-full"
         viewBox="0 0 800 310"
@@ -214,7 +268,7 @@ function ChartSvg({
       >
         <defs>
           <linearGradient id="stockHistoricalArea" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.28" />
+            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.14" />
             <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -222,17 +276,17 @@ function ChartSvg({
         {yTicks.map((tick) => (
           <g key={tick.y}>
             <line
-              x1="36"
-              x2="772"
+              x1="42"
+              x2="766"
               y1={tick.y}
               y2={tick.y}
-              stroke="rgba(255,255,255,0.09)"
+              stroke="rgba(255,255,255,0.08)"
               strokeWidth="1"
             />
             <text
               x="8"
               y={tick.y + 4}
-              fill="rgba(212,212,216,0.75)"
+              fill="rgba(212,212,216,0.68)"
               fontSize="12"
               fontWeight="700"
             >
@@ -241,14 +295,16 @@ function ChartSvg({
           </g>
         ))}
 
-        {areaPath ? <path d={areaPath} fill="url(#stockHistoricalArea)" /> : null}
+        {areaPath ? (
+          <path d={areaPath} fill="url(#stockHistoricalArea)" />
+        ) : null}
 
         {linePath ? (
           <path
             d={linePath}
             fill="none"
             stroke="#22c55e"
-            strokeWidth="4"
+            strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -258,7 +314,7 @@ function ChartSvg({
           const x =
             xTicks.length === 1
               ? 400
-              : 36 + (index / (xTicks.length - 1)) * (800 - 36 - 28);
+              : 42 + (index / (xTicks.length - 1)) * (800 - 42 - 34);
 
           return (
             <text
@@ -272,7 +328,7 @@ function ChartSvg({
                   ? "end"
                   : "middle"
               }
-              fill="rgba(212,212,216,0.68)"
+              fill="rgba(212,212,216,0.62)"
               fontSize="12"
               fontWeight="700"
             >
@@ -282,7 +338,7 @@ function ChartSvg({
         })}
       </svg>
 
-      <div className="pointer-events-none absolute right-5 top-5 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 backdrop-blur-md">
+      <div className="pointer-events-none absolute right-4 top-4 rounded-2xl border border-white/10 bg-black/35 px-4 py-3 backdrop-blur-md sm:right-5 sm:top-5">
         <p className="text-xs text-zinc-500">Current</p>
         <p className="mt-1 text-sm font-black text-white">
           {formatUsd(stats.current)}
