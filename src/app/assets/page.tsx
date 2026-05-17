@@ -2,6 +2,7 @@ import CryptoHistoricalChart from "@/components/CryptoHistoricalChart";
 import PortfolioAllocationCharts from "@/components/PortfolioAllocationCharts";
 import RealTimePortfolio from "@/components/RealTimePortfolio";
 import Reveal from "@/components/Reveal";
+import StockHistoricalChart from "../../components/StockHistoricalChart";
 
 export default function AssetsPage() {
   return (
@@ -36,7 +37,7 @@ export default function AssetsPage() {
               Stocks
             </p>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              Manual price input.
+              Live US market Stock.
             </p>
           </div>
 
@@ -61,6 +62,7 @@ export default function AssetsPage() {
 
       <Reveal>
         <CryptoHistoricalChart />
+        <StockHistoricalChart />
       </Reveal>
 
       <Reveal>
