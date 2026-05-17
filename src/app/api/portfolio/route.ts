@@ -16,12 +16,25 @@ type CoinGeckoResponse = {
   binancecoin?: CoinMarket;
 };
 
-type PortfolioAsset = {
+type FinnhubQuote = {
+  c?: number;
+  d?: number;
+  dp?: number;
+  h?: number;
+  l?: number;
+  o?: number;
+  pc?: number;
+  t?: number;
+};
+
+type AssetSource = "CoinGecko" | "Finnhub" | "Manual Fallback";
+
+type InternalAsset = {
   id: string;
   name: string;
   symbol: string;
   type: "crypto" | "stock";
-  source: "CoinGecko" | "Manual";
+  source: AssetSource;
   amount: number;
   amountLabel: string;
   priceUsd: number;
@@ -46,6 +59,54 @@ function round(value: number, digits = 2) {
   return Number(value.toFixed(digits));
 }
 
+function formatAmount(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 8,
+  }).format(value);
+}
+
+function formatShares(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+async function getFinnhubQuote(symbol: string): Promise<FinnhubQuote | null> {
+  try {
+    const token = process.env.FINNHUB_API_KEY;
+
+    if (!token) {
+      return null;
+    }
+
+    const response = await fetch(
+      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${token}`,
+      {
+        next: {
+          revalidate: 60,
+        },
+        headers: {
+          accept: "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as FinnhubQuote;
+
+    if (!Number.isFinite(data.c) || Number(data.c) <= 0) {
+      return null;
+    }
+
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 function makeCryptoAsset(params: {
   id: string;
   name: string;
@@ -54,7 +115,7 @@ function makeCryptoAsset(params: {
   amount: number;
   avgBuyUsd: number;
   usdIdr: number;
-}): PortfolioAsset {
+}): InternalAsset {
   const priceUsd = params.market?.usd ?? 0;
   const priceIdr = params.market?.idr ?? priceUsd * params.usdIdr;
 
@@ -75,30 +136,40 @@ function makeCryptoAsset(params: {
     type: "crypto",
     source: "CoinGecko",
     amount: params.amount,
-    amountLabel: `${params.amount} ${params.symbol}`,
-    priceUsd,
-    priceIdr,
-    currentValueUsd,
-    currentValueIdr,
-    pnlUsd,
-    pnlIdr,
-    pnlPercent,
+    amountLabel: `${formatAmount(params.amount)} ${params.symbol}`,
+    priceUsd: round(priceUsd),
+    priceIdr: round(priceIdr, 0),
+    currentValueUsd: round(currentValueUsd),
+    currentValueIdr: round(currentValueIdr, 0),
+    pnlUsd: round(pnlUsd),
+    pnlIdr: round(pnlIdr, 0),
+    pnlPercent: round(pnlPercent),
     allocationPercent: 0,
-    change24h: params.market?.usd_24h_change ?? 0,
+    change24h: round(params.market?.usd_24h_change ?? 0),
     lastUpdated: params.market?.last_updated_at ?? null,
   };
 }
 
-function makeUsdStockAsset(params: {
+function makeUsStockAsset(params: {
   id: string;
   name: string;
   symbol: string;
   shares: number;
   avgBuyUsd: number;
-  currentPriceUsd: number;
+  fallbackPriceUsd: number;
+  quote: FinnhubQuote | null;
   usdIdr: number;
-}): PortfolioAsset {
-  const currentValueUsd = params.shares * params.currentPriceUsd;
+}): InternalAsset {
+  const hasLivePrice =
+    params.quote !== null &&
+    Number.isFinite(params.quote.c) &&
+    Number(params.quote.c) > 0;
+
+  const priceUsd = hasLivePrice
+    ? Number(params.quote?.c)
+    : params.fallbackPriceUsd;
+
+  const currentValueUsd = params.shares * priceUsd;
   const currentValueIdr = currentValueUsd * params.usdIdr;
 
   const costUsd = params.shares * params.avgBuyUsd;
@@ -113,55 +184,19 @@ function makeUsdStockAsset(params: {
     name: params.name,
     symbol: params.symbol,
     type: "stock",
-    source: "Manual",
+    source: hasLivePrice ? "Finnhub" : "Manual Fallback",
     amount: params.shares,
-    amountLabel: `${params.shares} shares`,
-    priceUsd: params.currentPriceUsd,
-    priceIdr: params.currentPriceUsd * params.usdIdr,
-    currentValueUsd,
-    currentValueIdr,
-    pnlUsd,
-    pnlIdr,
-    pnlPercent,
+    amountLabel: `${formatShares(params.shares)} shares`,
+    priceUsd: round(priceUsd),
+    priceIdr: round(priceUsd * params.usdIdr, 0),
+    currentValueUsd: round(currentValueUsd),
+    currentValueIdr: round(currentValueIdr, 0),
+    pnlUsd: round(pnlUsd),
+    pnlIdr: round(pnlIdr, 0),
+    pnlPercent: round(pnlPercent),
     allocationPercent: 0,
-  };
-}
-
-function makeIdrStockAsset(params: {
-  id: string;
-  name: string;
-  symbol: string;
-  shares: number;
-  avgBuyIdr: number;
-  currentPriceIdr: number;
-  usdIdr: number;
-}): PortfolioAsset {
-  const currentValueIdr = params.shares * params.currentPriceIdr;
-  const currentValueUsd = currentValueIdr / params.usdIdr;
-
-  const costIdr = params.shares * params.avgBuyIdr;
-  const costUsd = costIdr / params.usdIdr;
-
-  const pnlIdr = currentValueIdr - costIdr;
-  const pnlUsd = currentValueUsd - costUsd;
-  const pnlPercent = costIdr > 0 ? (pnlIdr / costIdr) * 100 : 0;
-
-  return {
-    id: params.id,
-    name: params.name,
-    symbol: params.symbol,
-    type: "stock",
-    source: "Manual",
-    amount: params.shares,
-    amountLabel: `${params.shares.toLocaleString("id-ID")} shares`,
-    priceUsd: params.currentPriceIdr / params.usdIdr,
-    priceIdr: params.currentPriceIdr,
-    currentValueUsd,
-    currentValueIdr,
-    pnlUsd,
-    pnlIdr,
-    pnlPercent,
-    allocationPercent: 0,
+    change24h: hasLivePrice ? round(Number(params.quote?.dp ?? 0)) : undefined,
+    lastUpdated: hasLivePrice ? Number(params.quote?.t ?? 0) : null,
   };
 }
 
@@ -177,28 +212,35 @@ export async function GET() {
       "&include_last_updated_at=true" +
       "&precision=2";
 
-    const response = await fetch(cryptoUrl, {
-      next: {
-        revalidate: 60,
-      },
-      headers: {
-        accept: "application/json",
-      },
-    });
+    const [cryptoResponse, nvdaQuote, aaplQuote, msftQuote, qqqQuote] =
+      await Promise.all([
+        fetch(cryptoUrl, {
+          next: {
+            revalidate: 60,
+          },
+          headers: {
+            accept: "application/json",
+          },
+        }),
+        getFinnhubQuote("NVDA"),
+        getFinnhubQuote("AAPL"),
+        getFinnhubQuote("MSFT"),
+        getFinnhubQuote("QQQ"),
+      ]);
 
-    if (!response.ok) {
+    if (!cryptoResponse.ok) {
       return NextResponse.json(
         {
           success: false,
           message: "Failed to fetch crypto price data.",
         },
-        { status: response.status }
+        { status: cryptoResponse.status }
       );
     }
 
-    const market = (await response.json()) as CoinGeckoResponse;
+    const market = (await cryptoResponse.json()) as CoinGeckoResponse;
 
-    const assets: PortfolioAsset[] = [
+    const assets: InternalAsset[] = [
       makeCryptoAsset({
         id: "bitcoin",
         name: "Bitcoin",
@@ -235,31 +277,44 @@ export async function GET() {
         avgBuyUsd: envNumber("BNB_AVG_BUY_USD"),
         usdIdr,
       }),
-      makeUsdStockAsset({
+      makeUsStockAsset({
         id: "nvda",
         name: "NVIDIA Corporation",
         symbol: "NVDA",
-        shares: envNumber("NVDA_SHARES"),
-        avgBuyUsd: envNumber("NVDA_AVG_BUY_USD"),
-        currentPriceUsd: envNumber("NVDA_CURRENT_PRICE_USD"),
+        shares: envNumber("NVDA_SHARES", 28),
+        avgBuyUsd: envNumber("NVDA_AVG_BUY_USD", 225.32),
+        fallbackPriceUsd: envNumber("NVDA_FALLBACK_PRICE_USD", 225.32),
+        quote: nvdaQuote,
         usdIdr,
       }),
-      makeIdrStockAsset({
-        id: "bbca",
-        name: "Bank Central Asia",
-        symbol: "BBCA",
-        shares: envNumber("BBCA_SHARES"),
-        avgBuyIdr: envNumber("BBCA_AVG_BUY_IDR"),
-        currentPriceIdr: envNumber("BBCA_CURRENT_PRICE_IDR"),
+      makeUsStockAsset({
+        id: "aapl",
+        name: "Apple Inc.",
+        symbol: "AAPL",
+        shares: envNumber("AAPL_SHARES", 15),
+        avgBuyUsd: envNumber("AAPL_AVG_BUY_USD", 300.23),
+        fallbackPriceUsd: envNumber("AAPL_FALLBACK_PRICE_USD", 300.23),
+        quote: aaplQuote,
         usdIdr,
       }),
-      makeIdrStockAsset({
-        id: "bbri",
-        name: "Bank Rakyat Indonesia",
-        symbol: "BBRI",
-        shares: envNumber("BBRI_SHARES"),
-        avgBuyIdr: envNumber("BBRI_AVG_BUY_IDR"),
-        currentPriceIdr: envNumber("BBRI_CURRENT_PRICE_IDR"),
+      makeUsStockAsset({
+        id: "msft",
+        name: "Microsoft Corporation",
+        symbol: "MSFT",
+        shares: envNumber("MSFT_SHARES", 10),
+        avgBuyUsd: envNumber("MSFT_AVG_BUY_USD", 421.92),
+        fallbackPriceUsd: envNumber("MSFT_FALLBACK_PRICE_USD", 421.92),
+        quote: msftQuote,
+        usdIdr,
+      }),
+      makeUsStockAsset({
+        id: "qqq",
+        name: "Invesco QQQ Trust",
+        symbol: "QQQ",
+        shares: envNumber("QQQ_SHARES", 7),
+        avgBuyUsd: envNumber("QQQ_AVG_BUY_USD", 708.93),
+        fallbackPriceUsd: envNumber("QQQ_FALLBACK_PRICE_USD", 708.93),
+        quote: qqqQuote,
         usdIdr,
       }),
     ];
@@ -275,9 +330,7 @@ export async function GET() {
     );
 
     const totalPnlUsd = assets.reduce((sum, asset) => sum + asset.pnlUsd, 0);
-
     const totalPnlIdr = assets.reduce((sum, asset) => sum + asset.pnlIdr, 0);
-
     const totalCostUsd = totalValueUsd - totalPnlUsd;
 
     const totalPnlPercent =
@@ -285,32 +338,17 @@ export async function GET() {
 
     const assetsWithAllocation = assets.map((asset) => ({
       ...asset,
-      priceUsd: round(asset.priceUsd),
-      priceIdr: round(asset.priceIdr, 0),
-      currentValueUsd: round(asset.currentValueUsd),
-      currentValueIdr: round(asset.currentValueIdr, 0),
-      pnlUsd: round(asset.pnlUsd),
-      pnlIdr: round(asset.pnlIdr, 0),
-      pnlPercent: round(asset.pnlPercent),
       allocationPercent:
         totalValueUsd > 0
           ? round((asset.currentValueUsd / totalValueUsd) * 100)
           : 0,
-      change24h:
-        typeof asset.change24h === "number" ? round(asset.change24h) : undefined,
     }));
 
     return NextResponse.json({
       success: true,
       source: {
         crypto: "CoinGecko",
-        stocks: "Manual",
-      },
-      privacy: {
-        holdingsVisible: true,
-        averageBuyHidden: true,
-        note:
-          "Average buy price is not returned by this API, but profit/loss can still imply cost basis.",
+        stocks: "Finnhub with manual fallback",
       },
       updatedAt: new Date().toISOString(),
       exchangeRate: {

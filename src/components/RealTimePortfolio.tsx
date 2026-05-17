@@ -8,7 +8,7 @@ type PortfolioAsset = {
   name: string;
   symbol: string;
   type: "crypto" | "stock";
-  source: "CoinGecko" | "Manual";
+source: "CoinGecko" | "Finnhub" | "Manual Fallback";
   amount: number;
   amountLabel: string;
   priceUsd: number;
@@ -76,9 +76,9 @@ function isPositive(value: number) {
 }
 
 function sourceLabel(asset: PortfolioAsset) {
-  if (asset.type === "crypto") return "Live Market";
-  if (asset.symbol === "NVDA") return "Manual USD";
-  return "Manual IDR";
+  if (asset.type === "crypto") return "Live Crypto";
+  if (asset.source === "Finnhub") return "Live US Stock";
+  return "Price Fallback";
 }
 
 export default function RealTimePortfolio() {
@@ -304,13 +304,13 @@ export default function RealTimePortfolio() {
               Stock Holdings
             </p>
             <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] md:text-3xl">
-              Manual Stock Positions
+            Live US Stock Positions
             </h3>
           </div>
 
           <p className="max-w-xl text-sm leading-6 text-zinc-500">
-            NVDA memakai USD. BBCA dan BBRI ditampilkan IDR-first agar lebih
-            natural untuk saham Indonesia.
+            NVDA, AAPL, MSFT, dan QQQ memakai live US market quote dengan fallback
+harga manual jika API sedang tidak tersedia.
           </p>
         </div>
 

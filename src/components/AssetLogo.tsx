@@ -1,79 +1,67 @@
 type AssetLogoProps = {
   symbol: string;
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md";
 };
 
-const logoMap: Record<
+const assetStyles: Record<
   string,
   {
     label: string;
-    background: string;
-    color: string;
+    className: string;
   }
 > = {
   BTC: {
     label: "₿",
-    background: "linear-gradient(135deg, #f7931a, #facc15)",
-    color: "#111111",
+    className: "bg-yellow-400 text-black",
   },
   ETH: {
     label: "Ξ",
-    background: "linear-gradient(135deg, #627eea, #8b5cf6)",
-    color: "#ffffff",
+    className: "bg-violet-500 text-white",
   },
   SOL: {
     label: "◎",
-    background: "linear-gradient(135deg, #14f195, #9945ff)",
-    color: "#ffffff",
+    className: "bg-gradient-to-br from-emerald-400 to-violet-500 text-white",
   },
   BNB: {
     label: "◆",
-    background: "linear-gradient(135deg, #f3ba2f, #facc15)",
-    color: "#111111",
+    className: "bg-yellow-400 text-black",
   },
   NVDA: {
     label: "NV",
-    background: "linear-gradient(135deg, #76b900, #22c55e)",
-    color: "#071107",
+    className: "bg-green-500 text-black",
   },
-  BBCA: {
-    label: "BCA",
-    background: "linear-gradient(135deg, #2563eb, #38bdf8)",
-    color: "#ffffff",
+  AAPL: {
+    label: "A",
+    className: "bg-zinc-100 text-black",
   },
-  BBRI: {
-    label: "BRI",
-    background: "linear-gradient(135deg, #1d4ed8, #60a5fa)",
-    color: "#ffffff",
+  MSFT: {
+    label: "MS",
+    className: "bg-sky-500 text-white",
+  },
+  QQQ: {
+    label: "Q",
+    className: "bg-indigo-500 text-white",
   },
 };
 
-const sizeMap = {
+const sizeClass = {
   xs: "h-8 w-8 text-[10px]",
-  sm: "h-10 w-10 text-sm",
-  md: "h-12 w-12 text-base",
-  lg: "h-16 w-16 text-xl",
+  sm: "h-10 w-10 text-xs",
+  md: "h-12 w-12 text-sm",
 };
 
-export default function AssetLogo({ symbol, size = "md" }: AssetLogoProps) {
-  const logo = logoMap[symbol] ?? {
-    label: symbol.slice(0, 3),
-    background: "linear-gradient(135deg, #27272a, #52525b)",
-    color: "#ffffff",
+export default function AssetLogo({ symbol, size = "sm" }: AssetLogoProps) {
+  const style = assetStyles[symbol] ?? {
+    label: symbol.slice(0, 2),
+    className: "bg-zinc-700 text-white",
   };
 
   return (
     <div
-      className={`${sizeMap[size]} flex shrink-0 items-center justify-center rounded-2xl font-black shadow-lg`}
-      style={{
-        background: logo.background,
-        color: logo.color,
-        boxShadow: "0 14px 35px rgba(0,0,0,0.28)",
-      }}
-      aria-label={`${symbol} logo`}
+      className={`${sizeClass[size]} ${style.className} flex shrink-0 items-center justify-center rounded-full font-black shadow-lg`}
       title={symbol}
     >
-      {logo.label}
+      {style.label}
     </div>
   );
 }
