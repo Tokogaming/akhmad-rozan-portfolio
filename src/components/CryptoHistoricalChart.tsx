@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AssetLogo from "./AssetLogo";
 
-type Period = 7 | 30;
+type Period = 7 | 30 | 365;
 
 type CoinOption = {
   id: string;
@@ -16,133 +16,34 @@ type ChartPoint = {
   price: number;
 };
 
+type ApiResponse = {
+  success: boolean;
+  coin: string;
+  symbol: string;
+  name: string;
+  days: Period;
+  source: string;
+  points: ChartPoint[];
+};
+
 type Status = "idle" | "loading" | "success" | "error";
 
 const coins: CoinOption[] = [
-  {
-    id: "bitcoin",
-    symbol: "BTC",
-    name: "Bitcoin",
-  },
-  {
-    id: "ethereum",
-    symbol: "ETH",
-    name: "Ethereum",
-  },
-  {
-    id: "solana",
-    symbol: "SOL",
-    name: "Solana",
-  },
-  {
-    id: "binancecoin",
-    symbol: "BNB",
-    name: "BNB",
-  },
+  { id: "bitcoin", symbol: "BTC", name: "Bitcoin" },
+  { id: "ethereum", symbol: "ETH", name: "Ethereum" },
+  { id: "solana", symbol: "SOL", name: "Solana" },
+  { id: "binancecoin", symbol: "BNB", name: "BNB" },
 ];
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+const periodOptions: Array<{ value: Period; label: string }> = [
+  { value: 7, label: "7D" },
+  { value: 30, label: "30D" },
+  { value: 365, label: "1Y" },
+];
 
 function safeNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function safeTimestamp(value: unknown, fallback: number) {
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) return fallback;
-    return value < 1_000_000_000_000 ? value * 1000 : value;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Date.parse(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }
-
-  return fallback;
-}
-
-function extractArray(payload: unknown): unknown[] {
-  if (Array.isArray(payload)) return payload;
-
-  if (!isRecord(payload)) return [];
-
-  const directKeys = [
-    "prices",
-    "history",
-    "data",
-    "points",
-    "chart",
-    "marketData",
-    "marketChart",
-  ];
-
-  for (const key of directKeys) {
-    const value = payload[key];
-
-    if (Array.isArray(value)) {
-      return value;
-    }
-
-    if (isRecord(value)) {
-      const nested = extractArray(value);
-      if (nested.length > 0) return nested;
-    }
-  }
-
-  return [];
-}
-
-function normalizePoints(payload: unknown): ChartPoint[] {
-  const rows = extractArray(payload);
-  const fallbackStart = Date.now() - rows.length * 24 * 60 * 60 * 1000;
-
-  return rows
-    .map((item, index) => {
-      const fallbackTimestamp = fallbackStart + index * 24 * 60 * 60 * 1000;
-
-      if (Array.isArray(item)) {
-        const timestamp = safeTimestamp(item[0], fallbackTimestamp);
-        const price = safeNumber(item[1]);
-
-        return {
-          timestamp,
-          price,
-        };
-      }
-
-      if (isRecord(item)) {
-        const rawTimestamp =
-          item.timestamp ??
-          item.time ??
-          item.date ??
-          item.x ??
-          item.createdAt ??
-          item.updatedAt;
-
-        const rawPrice =
-          item.priceUsd ??
-          item.price ??
-          item.value ??
-          item.close ??
-          item.y ??
-          item.usd;
-
-        return {
-          timestamp: safeTimestamp(rawTimestamp, fallbackTimestamp),
-          price: safeNumber(rawPrice),
-        };
-      }
-
-      return {
-        timestamp: fallbackTimestamp,
-        price: 0,
-      };
-    })
-    .filter((point) => Number.isFinite(point.timestamp) && point.price > 0)
-    .sort((a, b) => a.timestamp - b.timestamp);
 }
 
 function formatUsd(value: number) {
@@ -163,10 +64,27 @@ function formatCompactUsd(value: number) {
 }
 
 function formatDate(timestamp: number, period: Period) {
+  if (period === 365) {
+    return new Intl.DateTimeFormat("id-ID", {
+      month: "short",
+      year: "2-digit",
+    }).format(new Date(timestamp));
+  }
+
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
-    month: period === 7 ? "short" : "short",
+    month: "short",
   }).format(new Date(timestamp));
+}
+
+function normalizePoints(points: ChartPoint[]) {
+  return points
+    .map((point) => ({
+      timestamp: safeNumber(point.timestamp),
+      price: safeNumber(point.price),
+    }))
+    .filter((point) => point.timestamp > 0 && point.price > 0)
+    .sort((a, b) => a.timestamp - b.timestamp);
 }
 
 function getPriceDomain(points: ChartPoint[]) {
@@ -182,8 +100,8 @@ function getPriceDomain(points: ChartPoint[]) {
 
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const rawRange = Math.max(maxPrice - minPrice, maxPrice * 0.015, 1);
-  const padding = rawRange * 0.32;
+  const rawRange = Math.max(maxPrice - minPrice, maxPrice * 0.012, 1);
+  const padding = rawRange * 0.24;
 
   const minDomain = Math.max(0, minPrice - padding);
   const maxDomain = maxPrice + padding;
@@ -197,11 +115,11 @@ function getPriceDomain(points: ChartPoint[]) {
 }
 
 function getChartCoords(points: ChartPoint[]) {
-  const viewWidth = 800;
-  const plotLeft = 42;
+  const viewWidth = 900;
+  const plotLeft = 58;
   const plotRight = 34;
   const plotTop = 34;
-  const plotBottom = 260;
+  const plotBottom = 280;
   const plotWidth = viewWidth - plotLeft - plotRight;
   const plotHeight = plotBottom - plotTop;
 
@@ -229,33 +147,13 @@ function buildLinePath(points: ChartPoint[]) {
 
   if (coords.length === 0) return "";
 
-  if (coords.length === 1) {
-    return `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(2)}`;
-  }
+  return coords
+    .map((point, index) => {
+      const command = index === 0 ? "M" : "L";
 
-  if (coords.length === 2) {
-    return `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(
-      2
-    )} L ${coords[1].x.toFixed(2)} ${coords[1].y.toFixed(2)}`;
-  }
-
-  let path = `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(2)}`;
-
-  for (let index = 1; index < coords.length - 1; index += 1) {
-    const current = coords[index];
-    const next = coords[index + 1];
-    const midX = (current.x + next.x) / 2;
-    const midY = (current.y + next.y) / 2;
-
-    path += ` Q ${current.x.toFixed(2)} ${current.y.toFixed(
-      2
-    )} ${midX.toFixed(2)} ${midY.toFixed(2)}`;
-  }
-
-  const last = coords[coords.length - 1];
-  path += ` T ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
-
-  return path;
+      return `${command} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+    })
+    .join(" ");
 }
 
 function buildAreaPath(points: ChartPoint[]) {
@@ -266,7 +164,7 @@ function buildAreaPath(points: ChartPoint[]) {
 
   const first = coords[0];
   const last = coords[coords.length - 1];
-  const plotBottom = 260;
+  const plotBottom = 280;
 
   return `${linePath} L ${last.x.toFixed(2)} ${plotBottom} L ${first.x.toFixed(
     2
@@ -277,6 +175,7 @@ function getStats(points: ChartPoint[]) {
   if (points.length === 0) {
     return {
       current: 0,
+      first: 0,
       changePercent: 0,
       high: 0,
       low: 0,
@@ -293,6 +192,7 @@ function getStats(points: ChartPoint[]) {
 
   return {
     current,
+    first,
     changePercent,
     high,
     low,
@@ -314,9 +214,9 @@ function ChartSvg({
   const stats = getStats(points);
   const domain = getPriceDomain(points);
 
-  const yTicks = [0, 0.33, 0.66, 1].map((ratio) => {
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
     const value = domain.maxDomain - domain.range * ratio;
-    const y = 34 + ratio * (260 - 34);
+    const y = 34 + ratio * (280 - 34);
 
     return {
       y,
@@ -324,36 +224,38 @@ function ChartSvg({
     };
   });
 
-  const xTicks =
-    points.length > 0
-      ? [
-          points[0],
-          points[Math.floor(points.length * 0.33)],
-          points[Math.floor(points.length * 0.66)],
-          points[points.length - 1],
-        ].filter(Boolean)
-      : [];
+ const xTickCount = period === 365 ? 6 : 4;
+const xTicks =
+  points.length > 0
+    ? Array.from({ length: xTickCount }, (_, index) => {
+        const pickedIndex = Math.round(
+          (index / Math.max(xTickCount - 1, 1)) * (points.length - 1)
+        );
+
+        return points[pickedIndex];
+      }).filter(Boolean)
+    : [];
 
   if (points.length === 0) {
     return (
-      <div className="flex h-[330px] items-center justify-center rounded-3xl border border-white/10 bg-black/10 text-sm text-zinc-500 sm:h-[380px]">
+      <div className="flex h-[340px] items-center justify-center rounded-3xl border border-white/10 bg-black/10 text-sm text-zinc-500 sm:h-[410px]">
         Historical data belum tersedia.
       </div>
     );
   }
 
   return (
-    <div className="relative h-[330px] overflow-hidden rounded-3xl border border-white/10 bg-black/10 p-4 sm:h-[380px]">
+    <div className="relative h-[340px] overflow-hidden rounded-3xl border border-white/10 bg-black/10 p-4 sm:h-[410px]">
       <svg
         className="h-full w-full"
-        viewBox="0 0 800 310"
+        viewBox="0 0 900 330"
         role="img"
         aria-label={`${selectedCoin.name} historical price chart`}
         preserveAspectRatio="none"
       >
         <defs>
-          <linearGradient id="historicalArea" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#facc15" stopOpacity="0.14" />
+          <linearGradient id="cryptoArea41F" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#facc15" stopOpacity="0.16" />
             <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -361,33 +263,33 @@ function ChartSvg({
         {yTicks.map((tick) => (
           <g key={tick.y}>
             <line
-              x1="42"
-              x2="766"
+              x1="58"
+              x2="866"
               y1={tick.y}
               y2={tick.y}
-              stroke="rgba(255,255,255,0.08)"
+              stroke="rgba(255,255,255,0.075)"
               strokeWidth="1"
             />
             <text
               x="8"
               y={tick.y + 4}
-              fill="rgba(212,212,216,0.68)"
+              fill="rgba(212,212,216,0.72)"
               fontSize="12"
-              fontWeight="700"
+              fontWeight="800"
             >
               {formatCompactUsd(tick.value)}
             </text>
           </g>
         ))}
 
-        {areaPath ? <path d={areaPath} fill="url(#historicalArea)" /> : null}
+        {areaPath ? <path d={areaPath} fill="url(#cryptoArea41F)" /> : null}
 
         {linePath ? (
           <path
             d={linePath}
             fill="none"
             stroke="#facc15"
-            strokeWidth="3"
+            strokeWidth="2.7"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -396,14 +298,14 @@ function ChartSvg({
         {xTicks.map((point, index) => {
           const x =
             xTicks.length === 1
-              ? 400
-              : 42 + (index / (xTicks.length - 1)) * (800 - 42 - 34);
+              ? 450
+              : 58 + (index / (xTicks.length - 1)) * (900 - 58 - 34);
 
           return (
             <text
               key={`${point.timestamp}-${index}`}
               x={x}
-              y="298"
+              y="318"
               textAnchor={
                 index === 0
                   ? "start"
@@ -413,7 +315,7 @@ function ChartSvg({
               }
               fill="rgba(212,212,216,0.62)"
               fontSize="12"
-              fontWeight="700"
+              fontWeight="800"
             >
               {formatDate(point.timestamp, period)}
             </text>
@@ -421,7 +323,7 @@ function ChartSvg({
         })}
       </svg>
 
-      <div className="pointer-events-none absolute right-4 top-4 rounded-2xl border border-white/10 bg-black/35 px-4 py-3 backdrop-blur-md sm:right-5 sm:top-5">
+      <div className="pointer-events-none absolute right-4 top-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-md">
         <p className="text-xs text-zinc-500">Current</p>
         <p className="mt-1 text-sm font-black text-white">
           {formatUsd(stats.current)}
@@ -435,6 +337,7 @@ export default function CryptoHistoricalChart() {
   const [selectedCoinId, setSelectedCoinId] = useState(coins[0].id);
   const [period, setPeriod] = useState<Period>(7);
   const [points, setPoints] = useState<ChartPoint[]>([]);
+  const [source, setSource] = useState("");
   const [status, setStatus] = useState<Status>("idle");
 
   const selectedCoin = useMemo(() => {
@@ -455,17 +358,24 @@ export default function CryptoHistoricalChart() {
           }
         );
 
-        const payload = await response.json();
-        const normalized = normalizePoints(payload);
+        const data = (await response.json()) as ApiResponse;
 
         if (!isMounted) return;
 
-        setPoints(normalized);
-        setStatus("success");
+        if (data.success && Array.isArray(data.points)) {
+          setPoints(normalizePoints(data.points));
+          setSource(data.source ?? "");
+          setStatus("success");
+        } else {
+          setPoints([]);
+          setSource("");
+          setStatus("error");
+        }
       } catch {
         if (!isMounted) return;
 
         setPoints([]);
+        setSource("");
         setStatus("error");
       }
     }
@@ -491,28 +401,28 @@ export default function CryptoHistoricalChart() {
           </p>
 
           <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white md:text-5xl">
-            7D / 30D Market Movement
+            7D / 30D / 1Y Market Movement
           </h2>
 
           <p className="mt-4 max-w-3xl leading-8 text-zinc-400">
-            Pantau pergerakan harga BTC, ETH, SOL, dan BNB dalam periode 7 hari
-            atau 30 hari. Chart ini memakai data historical market dari API.
+            Pantau pergerakan BTC, ETH, SOL, dan BNB dalam periode pendek sampai
+            satu tahun. Mode 1Y membuat pergerakan market terlihat lebih jelas.
           </p>
         </div>
 
         <div className="flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-2">
-          {[7, 30].map((item) => (
+          {periodOptions.map((item) => (
             <button
-              key={item}
+              key={item.value}
               type="button"
-              onClick={() => setPeriod(item as Period)}
+              onClick={() => setPeriod(item.value)}
               className={`rounded-xl px-5 py-3 text-sm font-black transition ${
-                period === item
+                period === item.value
                   ? "bg-yellow-300 text-black"
                   : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.08]"
               }`}
             >
-              {item}D
+              {item.label}
             </button>
           ))}
         </div>
@@ -582,19 +492,27 @@ export default function CryptoHistoricalChart() {
           </div>
         </div>
 
-        <div className="mb-5 flex items-center gap-3">
-          <AssetLogo symbol={selectedCoin.symbol} size="sm" />
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <AssetLogo symbol={selectedCoin.symbol} size="sm" />
 
-          <div>
-            <h3 className="text-2xl font-black text-white">
-              {selectedCoin.name} Price Chart
-            </h3>
-            <p className="text-sm text-zinc-500">
-              Period: {period} Days{" "}
-              {status === "loading" ? "• Updating..." : null}
-              {status === "error" ? "• Failed to load data" : null}
-            </p>
+            <div>
+              <h3 className="text-2xl font-black text-white">
+                {selectedCoin.name} Price Chart
+              </h3>
+              <p className="text-sm text-zinc-500">
+                Period: {period === 365 ? "1 Year" : `${period} Days`}{" "}
+                {status === "loading" ? "• Updating..." : null}
+                {status === "error" ? "• Failed to load data" : null}
+              </p>
+            </div>
           </div>
+
+          {source ? (
+            <div className="w-fit rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-black text-zinc-300">
+              Source: {source}
+            </div>
+          ) : null}
         </div>
 
         <ChartSvg

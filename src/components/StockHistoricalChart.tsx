@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AssetLogo from "./AssetLogo";
 
-type Period = 7 | 30;
+type Period = 7 | 30 | 365;
 
 type StockOption = {
   symbol: string;
@@ -27,22 +27,16 @@ type ApiResponse = {
 type Status = "idle" | "loading" | "success" | "error";
 
 const stocks: StockOption[] = [
-  {
-    symbol: "NVDA",
-    name: "NVIDIA Corporation",
-  },
-  {
-    symbol: "AAPL",
-    name: "Apple Inc.",
-  },
-  {
-    symbol: "MSFT",
-    name: "Microsoft Corporation",
-  },
-  {
-    symbol: "QQQ",
-    name: "Invesco QQQ Trust",
-  },
+  { symbol: "NVDA", name: "NVIDIA Corporation" },
+  { symbol: "AAPL", name: "Apple Inc." },
+  { symbol: "MSFT", name: "Microsoft Corporation" },
+  { symbol: "QQQ", name: "Invesco QQQ Trust" },
+];
+
+const periodOptions: Array<{ value: Period; label: string }> = [
+  { value: 7, label: "7D" },
+  { value: 30, label: "30D" },
+  { value: 365, label: "1Y" },
 ];
 
 function safeNumber(value: unknown, fallback = 0) {
@@ -68,9 +62,16 @@ function formatCompactUsd(value: number) {
 }
 
 function formatDate(timestamp: number, period: Period) {
+  if (period === 365) {
+    return new Intl.DateTimeFormat("id-ID", {
+      month: "short",
+      year: "2-digit",
+    }).format(new Date(timestamp));
+  }
+
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
-    month: period === 7 ? "short" : "short",
+    month: "short",
   }).format(new Date(timestamp));
 }
 
@@ -97,8 +98,8 @@ function getPriceDomain(points: ChartPoint[]) {
 
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const rawRange = Math.max(maxPrice - minPrice, maxPrice * 0.015, 1);
-  const padding = rawRange * 0.32;
+  const rawRange = Math.max(maxPrice - minPrice, maxPrice * 0.012, 1);
+  const padding = rawRange * 0.24;
 
   const minDomain = Math.max(0, minPrice - padding);
   const maxDomain = maxPrice + padding;
@@ -112,11 +113,11 @@ function getPriceDomain(points: ChartPoint[]) {
 }
 
 function getChartCoords(points: ChartPoint[]) {
-  const viewWidth = 800;
-  const plotLeft = 42;
+  const viewWidth = 900;
+  const plotLeft = 58;
   const plotRight = 34;
   const plotTop = 34;
-  const plotBottom = 260;
+  const plotBottom = 280;
   const plotWidth = viewWidth - plotLeft - plotRight;
   const plotHeight = plotBottom - plotTop;
 
@@ -144,33 +145,13 @@ function buildLinePath(points: ChartPoint[]) {
 
   if (coords.length === 0) return "";
 
-  if (coords.length === 1) {
-    return `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(2)}`;
-  }
+  return coords
+    .map((point, index) => {
+      const command = index === 0 ? "M" : "L";
 
-  if (coords.length === 2) {
-    return `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(
-      2
-    )} L ${coords[1].x.toFixed(2)} ${coords[1].y.toFixed(2)}`;
-  }
-
-  let path = `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(2)}`;
-
-  for (let index = 1; index < coords.length - 1; index += 1) {
-    const current = coords[index];
-    const next = coords[index + 1];
-    const midX = (current.x + next.x) / 2;
-    const midY = (current.y + next.y) / 2;
-
-    path += ` Q ${current.x.toFixed(2)} ${current.y.toFixed(
-      2
-    )} ${midX.toFixed(2)} ${midY.toFixed(2)}`;
-  }
-
-  const last = coords[coords.length - 1];
-  path += ` T ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
-
-  return path;
+      return `${command} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+    })
+    .join(" ");
 }
 
 function buildAreaPath(points: ChartPoint[]) {
@@ -181,7 +162,7 @@ function buildAreaPath(points: ChartPoint[]) {
 
   const first = coords[0];
   const last = coords[coords.length - 1];
-  const plotBottom = 260;
+  const plotBottom = 280;
 
   return `${linePath} L ${last.x.toFixed(2)} ${plotBottom} L ${first.x.toFixed(
     2
@@ -192,6 +173,7 @@ function getStats(points: ChartPoint[]) {
   if (points.length === 0) {
     return {
       current: 0,
+      first: 0,
       changePercent: 0,
       high: 0,
       low: 0,
@@ -208,6 +190,7 @@ function getStats(points: ChartPoint[]) {
 
   return {
     current,
+    first,
     changePercent,
     high,
     low,
@@ -229,9 +212,9 @@ function ChartSvg({
   const domain = getPriceDomain(points);
   const stats = getStats(points);
 
-  const yTicks = [0, 0.33, 0.66, 1].map((ratio) => {
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
     const value = domain.maxDomain - domain.range * ratio;
-    const y = 34 + ratio * (260 - 34);
+    const y = 34 + ratio * (280 - 34);
 
     return {
       y,
@@ -239,36 +222,38 @@ function ChartSvg({
     };
   });
 
-  const xTicks =
-    points.length > 0
-      ? [
-          points[0],
-          points[Math.floor(points.length * 0.33)],
-          points[Math.floor(points.length * 0.66)],
-          points[points.length - 1],
-        ].filter(Boolean)
-      : [];
+  const xTickCount = period === 365 ? 6 : 4;
+const xTicks =
+  points.length > 0
+    ? Array.from({ length: xTickCount }, (_, index) => {
+        const pickedIndex = Math.round(
+          (index / Math.max(xTickCount - 1, 1)) * (points.length - 1)
+        );
+
+        return points[pickedIndex];
+      }).filter(Boolean)
+    : [];
 
   if (points.length === 0) {
     return (
-      <div className="flex h-[330px] items-center justify-center rounded-3xl border border-white/10 bg-black/10 text-sm text-zinc-500 sm:h-[380px]">
+      <div className="flex h-[340px] items-center justify-center rounded-3xl border border-white/10 bg-black/10 text-sm text-zinc-500 sm:h-[410px]">
         Stock historical data belum tersedia.
       </div>
     );
   }
 
   return (
-    <div className="relative h-[330px] overflow-hidden rounded-3xl border border-white/10 bg-black/10 p-4 sm:h-[380px]">
+    <div className="relative h-[340px] overflow-hidden rounded-3xl border border-white/10 bg-black/10 p-4 sm:h-[410px]">
       <svg
         className="h-full w-full"
-        viewBox="0 0 800 310"
+        viewBox="0 0 900 330"
         role="img"
         aria-label={`${selectedStock.name} stock historical chart`}
         preserveAspectRatio="none"
       >
         <defs>
-          <linearGradient id="stockHistoricalArea" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.14" />
+          <linearGradient id="stockArea41F" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.16" />
             <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -276,35 +261,33 @@ function ChartSvg({
         {yTicks.map((tick) => (
           <g key={tick.y}>
             <line
-              x1="42"
-              x2="766"
+              x1="58"
+              x2="866"
               y1={tick.y}
               y2={tick.y}
-              stroke="rgba(255,255,255,0.08)"
+              stroke="rgba(255,255,255,0.075)"
               strokeWidth="1"
             />
             <text
               x="8"
               y={tick.y + 4}
-              fill="rgba(212,212,216,0.68)"
+              fill="rgba(212,212,216,0.72)"
               fontSize="12"
-              fontWeight="700"
+              fontWeight="800"
             >
               {formatCompactUsd(tick.value)}
             </text>
           </g>
         ))}
 
-        {areaPath ? (
-          <path d={areaPath} fill="url(#stockHistoricalArea)" />
-        ) : null}
+        {areaPath ? <path d={areaPath} fill="url(#stockArea41F)" /> : null}
 
         {linePath ? (
           <path
             d={linePath}
             fill="none"
             stroke="#22c55e"
-            strokeWidth="3"
+            strokeWidth="2.7"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -313,14 +296,14 @@ function ChartSvg({
         {xTicks.map((point, index) => {
           const x =
             xTicks.length === 1
-              ? 400
-              : 42 + (index / (xTicks.length - 1)) * (800 - 42 - 34);
+              ? 450
+              : 58 + (index / (xTicks.length - 1)) * (900 - 58 - 34);
 
           return (
             <text
               key={`${point.timestamp}-${index}`}
               x={x}
-              y="298"
+              y="318"
               textAnchor={
                 index === 0
                   ? "start"
@@ -330,7 +313,7 @@ function ChartSvg({
               }
               fill="rgba(212,212,216,0.62)"
               fontSize="12"
-              fontWeight="700"
+              fontWeight="800"
             >
               {formatDate(point.timestamp, period)}
             </text>
@@ -338,7 +321,7 @@ function ChartSvg({
         })}
       </svg>
 
-      <div className="pointer-events-none absolute right-4 top-4 rounded-2xl border border-white/10 bg-black/35 px-4 py-3 backdrop-blur-md sm:right-5 sm:top-5">
+      <div className="pointer-events-none absolute right-4 top-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-md">
         <p className="text-xs text-zinc-500">Current</p>
         <p className="mt-1 text-sm font-black text-white">
           {formatUsd(stats.current)}
@@ -416,29 +399,28 @@ export default function StockHistoricalChart() {
           </p>
 
           <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white md:text-5xl">
-            7D / 30D US Stock Movement
+            7D / 30D / 1Y US Stock Movement
           </h2>
 
           <p className="mt-4 max-w-3xl leading-8 text-zinc-400">
-            Pantau pergerakan harga NVDA, AAPL, MSFT, dan QQQ dalam periode 7
-            hari atau 30 hari. Jika data candle Finnhub tersedia, chart memakai
-            data historical market langsung.
+            Pantau pergerakan NVDA, AAPL, MSFT, dan QQQ. Mode 1Y membuat
+            struktur trend saham terlihat lebih jelas dan tidak terlalu datar.
           </p>
         </div>
 
         <div className="flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-2">
-          {[7, 30].map((item) => (
+          {periodOptions.map((item) => (
             <button
-              key={item}
+              key={item.value}
               type="button"
-              onClick={() => setPeriod(item as Period)}
+              onClick={() => setPeriod(item.value)}
               className={`rounded-xl px-5 py-3 text-sm font-black transition ${
-                period === item
+                period === item.value
                   ? "bg-emerald-400 text-black"
                   : "bg-white/[0.05] text-zinc-300 hover:bg-white/[0.08]"
               }`}
             >
-              {item}D
+              {item.label}
             </button>
           ))}
         </div>
@@ -517,7 +499,7 @@ export default function StockHistoricalChart() {
                 {selectedStock.symbol} Stock Price Chart
               </h3>
               <p className="text-sm text-zinc-500">
-                Period: {period} Days{" "}
+                Period: {period === 365 ? "1 Year" : `${period} Days`}{" "}
                 {status === "loading" ? "• Updating..." : null}
                 {status === "error" ? "• Failed to load data" : null}
               </p>
