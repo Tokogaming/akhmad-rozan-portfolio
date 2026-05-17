@@ -3,6 +3,7 @@ import PortfolioAllocationCharts from "@/components/PortfolioAllocationCharts";
 import RealTimePortfolio from "@/components/RealTimePortfolio";
 import Reveal from "@/components/Reveal";
 import StockHistoricalChart from "../../components/StockHistoricalChart";
+import PortfolioTrustPanel from "@/components/PortfolioTrustPanel";
 
 export default function AssetsPage() {
   return (
@@ -18,8 +19,7 @@ export default function AssetsPage() {
 
         <p className="mt-6 text-lg leading-8 text-zinc-400">
           Dashboard personal untuk melihat holdings, current value, profit/loss,
-          allocation, chart historical, harga crypto real-time, dan posisi saham
-          manual dalam satu tampilan portfolio.
+          allocation, chart historical, harga crypto real-time, dan posisi saham US live dalam satu tampilan portfolio.
         </p>
 
         <div className="mx-auto mt-8 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
@@ -63,6 +63,7 @@ export default function AssetsPage() {
       <Reveal>
         <CryptoHistoricalChart />
         <StockHistoricalChart />
+        <PortfolioTrustPanel />
       </Reveal>
 
       <Reveal>
