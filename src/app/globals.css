@@ -198,4 +198,50 @@ video {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* Portfolio Mobile Safe Mode */
+.project-card-mobile-safe {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(24, 27, 39, 0.94),
+      rgba(8, 10, 17, 0.98)
+    );
+}
+
+@media (min-width: 769px) {
+  .project-card-mobile-safe {
+    background:
+      radial-gradient(circle at top right, rgba(247, 201, 72, 0.12), transparent 30%),
+      radial-gradient(circle at bottom left, rgba(124, 92, 255, 0.12), transparent 34%),
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.08),
+        rgba(255, 255, 255, 0.035)
+      );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+@media (max-width: 768px) {
+  .project-card-mobile-safe {
+    background:
+      linear-gradient(
+        145deg,
+        rgba(22, 25, 36, 0.97),
+        rgba(8, 10, 17, 0.99)
+      ) !important;
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transform: none !important;
+    contain: paint;
+  }
+
+  .project-card-mobile-safe:hover,
+  .project-card-mobile-safe:hover * {
+    transform: none !important;
+  }
+}
 }
