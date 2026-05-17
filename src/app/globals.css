@@ -5,7 +5,7 @@
 }
 
 html {
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
   background: #05070d;
 }
 
@@ -13,9 +13,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(124, 92, 255, 0.2), transparent 32%),
-    radial-gradient(circle at top right, rgba(247, 201, 72, 0.14), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(247, 201, 72, 0.12), transparent 26%),
+    radial-gradient(circle at top left, rgba(124, 92, 255, 0.22), transparent 34%),
+    radial-gradient(circle at top right, rgba(247, 201, 72, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(247, 201, 72, 0.13), transparent 28%),
     #05070d;
   color: white;
   -webkit-font-smoothing: antialiased;
@@ -59,14 +59,21 @@ button:focus-visible {
   outline-offset: 4px;
 }
 
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
 .glass {
   background:
     linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.075),
+      145deg,
+      rgba(255, 255, 255, 0.09),
       rgba(255, 255, 255, 0.035)
     );
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.13);
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -79,66 +86,75 @@ button:focus-visible {
   -webkit-text-fill-color: transparent;
 }
 
-/* Recharts default focus cleanup */
+/* Recharts cleanup */
 .recharts-wrapper,
 .recharts-surface {
   outline: none;
 }
 
-/* Prevent accidental horizontal overflow */
-img,
-svg,
-canvas,
-video {
-  max-width: 100%;
-}
-
-/* Mobile Performance + GPU Glitch Fix */
+/* Mobile balanced performance fix */
 @media (max-width: 768px) {
+  html {
+    scroll-behavior: auto;
+  }
+
   html,
   body {
     width: 100%;
     overflow-x: hidden;
-    background: #05070d !important;
-    scroll-behavior: auto !important;
+    background: #05070d;
   }
 
   body {
     background:
-      radial-gradient(circle at top left, rgba(124, 92, 255, 0.12), transparent 28%),
-      radial-gradient(circle at bottom right, rgba(247, 201, 72, 0.1), transparent 24%),
-      #05070d !important;
+      radial-gradient(circle at top left, rgba(124, 92, 255, 0.2), transparent 34%),
+      radial-gradient(circle at top right, rgba(247, 201, 72, 0.13), transparent 30%),
+      radial-gradient(circle at bottom right, rgba(247, 201, 72, 0.16), transparent 32%),
+      #05070d;
   }
 
-  /* Ringankan glass effect di HP */
+  /*
+    Mobile glass:
+    - Blur dimatikan agar tidak glitch di HP tertentu.
+    - Tapi background tetap semi-transparent agar desain premium tidak hilang.
+  */
   .glass {
-    background: rgba(255, 255, 255, 0.055) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35) !important;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(24, 26, 38, 0.74),
+        rgba(8, 10, 18, 0.86)
+      ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.48) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 
-  /* Matikan blur/filter berat di mobile */
-  [class*="backdrop-blur"],
-  [class*="blur-"],
-  [class*="filter"] {
+  /*
+    Jangan matikan semua blur/filter global.
+    Ini penting supaya dekorasi background masih tetap hidup.
+  */
+  [class*="backdrop-blur"] {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    filter: none !important;
   }
 
-  /* Hindari glitch dari hover/translate saat scroll HP */
-  .group:hover,
-  .group:hover *,
-  article:hover,
-  article:hover *,
-  a:hover,
-  button:hover {
-    transform: none !important;
+  /*
+    Hover effect tidak dibutuhkan di layar sentuh.
+    Ini mengurangi risiko flicker saat scroll.
+  */
+  @media (hover: none) {
+    .group:hover,
+    .group:hover *,
+    article:hover,
+    article:hover *,
+    a:hover,
+    button:hover {
+      transform: none !important;
+    }
   }
 
-  /* Kurangi rendering layer berat */
   section,
   article,
   header,
@@ -148,24 +164,27 @@ video {
     -webkit-backface-visibility: hidden;
   }
 
-  /* Stabilkan chart/SVG di HP */
   svg,
   canvas,
   .recharts-wrapper,
   .recharts-surface {
-    transform: none !important;
     will-change: auto !important;
-    overflow: visible;
   }
 
-  /* Card lebih ringan saat mobile */
-  article {
-    box-shadow: none;
+  .recharts-wrapper {
+    transform: translateZ(0);
   }
+}
 
-  /* Animasi dan transition jangan terlalu agresif di HP */
-  * {
-    scroll-behavior: auto !important;
+/* Very small phones */
+@media (max-width: 420px) {
+  .glass {
+    background:
+      linear-gradient(
+        145deg,
+        rgba(22, 24, 36, 0.78),
+        rgba(8, 10, 18, 0.9)
+      ) !important;
   }
 }
 
@@ -179,42 +198,4 @@ video {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-
-  /* Mobile Premium Card Polish */
-@media (max-width: 768px) {
-  .glass {
-    background:
-      linear-gradient(
-        180deg,
-        rgba(18, 20, 30, 0.94),
-        rgba(10, 12, 20, 0.97)
-      ) !important;
-    border: 1px solid rgba(255, 255, 255, 0.11) !important;
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  article.glass {
-    background:
-      linear-gradient(
-        145deg,
-        rgba(20, 22, 32, 0.96),
-        rgba(9, 11, 18, 0.98)
-      ) !important;
-  }
-
-  /* Kurangi dekorasi blob agar tidak terlalu ramai di HP */
-  [class*="blur-"] {
-    opacity: 0.18 !important;
-  }
-
-  /* Khusus card besar, jaga teks tetap jelas */
-  article p,
-  article h2,
-  article h3,
-  article span {
-    text-shadow: none !important;
-  }
-}
 }
