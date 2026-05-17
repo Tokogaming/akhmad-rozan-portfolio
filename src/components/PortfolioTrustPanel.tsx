@@ -29,8 +29,8 @@ const trustItems = [
 
 export default function PortfolioTrustPanel() {
   return (
-    <section className="mt-20">
-      <div className="rounded-[34px] border border-white/10 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] md:p-8">
+<section className="mt-24 scroll-mt-28 pt-4">      
+    <div className="rounded-[34px] border border-white/10 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] md:p-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.85fr] lg:items-start">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.28em] text-yellow-300">
