@@ -1,384 +1,433 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import AssetLogo from "@/components/AssetLogo";
+import AssetLogo from "./AssetLogo";
 
 type PortfolioAsset = {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   symbol: string;
   type: "crypto" | "stock";
-  source: "CoinGecko" | "Manual";
+  source?: string;
   currentValueUsd: number;
-  currentValueIdr: number;
-  pnlPercent: number;
-  allocationPercent: number;
+  currentValueIdr?: number;
+  pnlPercent?: number;
+  allocationPercent?: number;
 };
 
-type PortfolioResponse = {
+type PortfolioApiResponse = {
   success: boolean;
-  updatedAt: string;
-  summary: {
-    totalValueUsd: number;
-    totalValueIdr: number;
-    totalPnlUsd: number;
-    totalPnlIdr: number;
-    totalPnlPercent: number;
+  assets?: PortfolioAsset[];
+};
+
+type PortfolioAllocationChartsProps = {
+  assets?: PortfolioAsset[];
+  data?: {
+    assets?: PortfolioAsset[];
   };
-  assets: PortfolioAsset[];
+  portfolio?: {
+    assets?: PortfolioAsset[];
+  };
+  portfolioData?: {
+    assets?: PortfolioAsset[];
+  };
 };
 
-type ChartAsset = PortfolioAsset & {
-  chartValue: number;
-};
-
-const chartColors = [
+const colors = [
   "#facc15",
   "#8b5cf6",
   "#22c55e",
   "#38bdf8",
   "#fb7185",
   "#f97316",
-  "#14b8a6",
+  "#2dd4bf",
+  "#94a3b8",
 ];
 
-function usd(value: number) {
+function safeNumber(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatUsd(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(safeNumber(value));
 }
 
-function idr(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function shortUsd(value: number) {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
-  return `$${value.toFixed(0)}`;
-}
-
-function AllocationTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: ChartAsset }>;
-}) {
-  if (!active || !payload?.length) return null;
-
-  const asset = payload[0].payload;
-
+function resolveAssets(props: PortfolioAllocationChartsProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0b0d14] p-4 shadow-2xl">
-      <p className="font-black text-white">{asset.symbol}</p>
-      <p className="mt-1 text-sm text-zinc-400">{asset.name}</p>
-
-      <div className="mt-3 grid gap-1 text-sm">
-        <p className="text-zinc-300">
-          Allocation:{" "}
-          <span className="font-black text-yellow-300">
-            {asset.allocationPercent}%
-          </span>
-        </p>
-
-        <p className="text-zinc-300">
-          Value:{" "}
-          <span className="font-black text-white">
-            {usd(asset.currentValueUsd)}
-          </span>
-        </p>
-
-        <p className="text-zinc-500">{idr(asset.currentValueIdr)}</p>
-      </div>
-    </div>
+    props.assets ??
+    props.data?.assets ??
+    props.portfolio?.assets ??
+    props.portfolioData?.assets ??
+    []
   );
 }
 
-function ValueTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: ChartAsset }>;
-}) {
-  if (!active || !payload?.length) return null;
+function getDisplayAssets(assets: PortfolioAsset[]) {
+  const cleaned = assets
+    .map((asset, index) => {
+      const currentValueUsd = safeNumber(asset.currentValueUsd);
 
-  const asset = payload[0].payload;
-  const positive = asset.pnlPercent >= 0;
+      return {
+        ...asset,
+        id: asset.id ?? asset.symbol.toLowerCase(),
+        name: asset.name ?? asset.symbol,
+        currentValueUsd,
+        allocationPercent: safeNumber(asset.allocationPercent),
+        color: colors[index % colors.length],
+      };
+    })
+    .filter((asset) => asset.currentValueUsd > 0)
+    .sort((a, b) => b.currentValueUsd - a.currentValueUsd);
 
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#0b0d14] p-4 shadow-2xl">
-      <p className="font-black text-white">{asset.symbol}</p>
-      <p className="mt-1 text-sm text-zinc-400">{asset.name}</p>
-
-      <div className="mt-3 grid gap-1 text-sm">
-        <p className="text-zinc-300">
-          Value:{" "}
-          <span className="font-black text-white">
-            {usd(asset.currentValueUsd)}
-          </span>
-        </p>
-
-        <p className="text-zinc-500">{idr(asset.currentValueIdr)}</p>
-
-        <p className={positive ? "text-emerald-400" : "text-red-400"}>
-          P/L: {positive ? "+" : ""}
-          {asset.pnlPercent}%
-        </p>
-      </div>
-    </div>
+  const totalValue = cleaned.reduce(
+    (sum, asset) => sum + asset.currentValueUsd,
+    0
   );
+
+  return cleaned.map((asset) => ({
+    ...asset,
+    allocationPercent:
+      totalValue > 0
+        ? asset.allocationPercent > 0
+          ? asset.allocationPercent
+          : (asset.currentValueUsd / totalValue) * 100
+        : 0,
+  }));
 }
 
-export default function PortfolioAllocationCharts() {
-  const [data, setData] = useState<PortfolioResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+function DonutChart({
+  assets,
+}: {
+  assets: ReturnType<typeof getDisplayAssets>;
+}) {
+  const radius = 78;
+  const strokeWidth = 22;
+  const center = 110;
+  const circumference = 2 * Math.PI * radius;
 
-  async function getPortfolio() {
-    try {
-      setError("");
+  const totalValue = assets.reduce(
+    (sum, asset) => sum + asset.currentValueUsd,
+    0
+  );
 
-      const response = await fetch("/api/portfolio", {
-        cache: "no-store",
-      });
+  let offset = 0;
 
-      const result = (await response.json()) as PortfolioResponse;
-
-      if (!result.success) {
-        throw new Error("Failed to load portfolio allocation");
-      }
-
-      setData(result);
-    } catch {
-      setError("Chart portfolio gagal dimuat.");
-    } finally {
-      setLoading(false);
-    }
+  if (assets.length === 0 || totalValue <= 0) {
+    return (
+      <div className="flex h-[300px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.03] text-sm text-zinc-500">
+        Loading allocation data...
+      </div>
+    );
   }
+
+  return (
+    <div className="flex h-[300px] items-center justify-center">
+      <svg
+        width="260"
+        height="260"
+        viewBox="0 0 220 220"
+        role="img"
+        aria-label="Asset allocation donut chart"
+      >
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={strokeWidth}
+        />
+
+        {assets.map((asset) => {
+          const percent =
+            totalValue > 0 ? asset.currentValueUsd / totalValue : 0;
+
+          const dash = Math.max(0, percent * circumference);
+          const gap = Math.max(0, circumference - dash);
+          const dashOffset = -offset;
+
+          offset += dash;
+
+          return (
+            <circle
+              key={asset.id}
+              cx={center}
+              cy={center}
+              r={radius}
+              fill="none"
+              stroke={asset.color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="butt"
+              transform={`rotate(-90 ${center} ${center})`}
+            />
+          );
+        })}
+
+        <circle cx={center} cy={center} r="52" fill="#11141d" />
+
+        <text
+          x={center}
+          y={center - 4}
+          textAnchor="middle"
+          fill="#ffffff"
+          fontSize="18"
+          fontWeight="900"
+        >
+          {assets[0]?.symbol ?? "ASSET"}
+        </text>
+
+        <text
+          x={center}
+          y={center + 18}
+          textAnchor="middle"
+          fill="#a1a1aa"
+          fontSize="10"
+          fontWeight="700"
+        >
+          Top Allocation
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+function BarChart({
+  assets,
+}: {
+  assets: ReturnType<typeof getDisplayAssets>;
+}) {
+  const maxValue = Math.max(
+    ...assets.map((asset) => asset.currentValueUsd),
+    1
+  );
+
+  const topAsset = assets[0];
+
+  if (assets.length === 0) {
+    return (
+      <div className="flex h-[320px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.03] text-sm text-zinc-500">
+        Loading value breakdown...
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="relative h-[320px] overflow-hidden rounded-3xl border border-white/10 bg-black/10 px-5 pb-12 pt-8">
+        <div className="pointer-events-none absolute inset-x-5 top-8 h-px bg-white/10" />
+        <div className="pointer-events-none absolute inset-x-5 top-[35%] h-px bg-white/10" />
+        <div className="pointer-events-none absolute inset-x-5 top-[62%] h-px bg-white/10" />
+        <div className="pointer-events-none absolute inset-x-5 bottom-12 h-px bg-white/10" />
+
+        <div className="relative z-10 flex h-full items-end gap-3">
+          {assets.map((asset) => {
+            const barPercent =
+              maxValue > 0 ? (asset.currentValueUsd / maxValue) * 100 : 0;
+
+            const heightPercent = Math.min(
+              100,
+              Math.max(5, safeNumber(barPercent))
+            );
+
+            return (
+              <div
+                key={asset.id}
+                className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-3"
+              >
+                <div
+                  className="w-full max-w-[58px] rounded-t-2xl shadow-lg"
+                  style={{
+                    height: `${heightPercent}%`,
+                    background: asset.color,
+                  }}
+                  title={`${asset.symbol}: ${formatUsd(
+                    asset.currentValueUsd
+                  )}`}
+                />
+
+                <div className="text-center text-xs font-black text-zinc-300">
+                  {asset.symbol}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {topAsset ? (
+        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.045] px-5 py-4 text-sm leading-7 text-zinc-400">
+          Asset terbesar saat ini adalah{" "}
+          <span className="font-black text-yellow-300">{topAsset.symbol}</span>{" "}
+          dengan value{" "}
+          <span className="font-black text-white">
+            {formatUsd(topAsset.currentValueUsd)}
+          </span>
+          .
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+export default function PortfolioAllocationCharts(
+  props: PortfolioAllocationChartsProps
+) {
+  const propAssets = resolveAssets(props);
+  const [apiAssets, setApiAssets] = useState<PortfolioAsset[]>([]);
+  const [isLoading, setIsLoading] = useState(propAssets.length === 0);
 
   useEffect(() => {
-    getPortfolio();
+    if (propAssets.length > 0) {
+      setIsLoading(false);
+      return;
+    }
 
-    const interval = setInterval(() => {
-      getPortfolio();
-    }, 180000);
+    let isMounted = true;
 
-    return () => clearInterval(interval);
-  }, []);
+    async function loadPortfolioAssets() {
+      try {
+        const response = await fetch("/api/portfolio", {
+          cache: "no-store",
+        });
 
-  const chartData = useMemo<ChartAsset[]>(() => {
-    if (!data?.assets) return [];
+        const data = (await response.json()) as PortfolioApiResponse;
 
-    return [...data.assets]
-      .sort((a, b) => b.currentValueUsd - a.currentValueUsd)
-      .map((asset) => ({
-        ...asset,
-        chartValue: asset.currentValueUsd,
-      }));
-  }, [data]);
+        if (!isMounted) return;
 
-  if (loading) {
-    return (
-      <div className="glass mt-16 rounded-[32px] p-8 text-zinc-400">
-        Loading allocation charts...
-      </div>
-    );
-  }
+        if (data.success && Array.isArray(data.assets)) {
+          setApiAssets(data.assets);
+        }
+      } catch {
+        if (!isMounted) return;
+        setApiAssets([]);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
 
-  if (error || !data) {
-    return (
-      <div className="mt-16 rounded-[32px] border border-red-500/30 bg-red-500/10 p-8 text-red-300">
-        {error}
-      </div>
-    );
-  }
+    loadPortfolioAssets();
+
+    const interval = window.setInterval(loadPortfolioAssets, 180000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [propAssets.length]);
+
+  const rawAssets = propAssets.length > 0 ? propAssets : apiAssets;
+
+  const displayAssets = useMemo(() => {
+    return getDisplayAssets(rawAssets);
+  }, [rawAssets]);
+
+  const totalValue = displayAssets.reduce(
+    (sum, asset) => sum + asset.currentValueUsd,
+    0
+  );
 
   return (
     <section className="mt-16">
-      <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
-            Real-Time Allocation Charts
+          <p className="text-sm font-black uppercase tracking-[0.28em] text-yellow-300">
+            Portfolio Allocation
           </p>
-
-          <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] md:text-5xl">
-            Portfolio Distribution
+          <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white md:text-5xl">
+            Live Allocation Breakdown
           </h2>
-
           <p className="mt-4 max-w-3xl leading-8 text-zinc-400">
-            Donut chart dan bar chart ini membaca data langsung dari portfolio
-            engine. Allocation akan berubah otomatis saat harga crypto bergerak.
+            Donut chart dan bar chart membaca data langsung dari portfolio
+            engine. Allocation berubah otomatis saat harga crypto dan saham US
+            bergerak.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-zinc-300">
-          Total: {usd(data.summary.totalValueUsd)}
+        <div className="w-fit rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-3 text-sm font-black text-white">
+          {isLoading ? "Loading..." : `Total: ${formatUsd(totalValue)}`}
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="glass rounded-[32px] p-6">
-          <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-[30px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.32)]">
+          <div className="mb-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-yellow-300">
+              <p className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
                 Donut Chart
               </p>
-
-              <h3 className="mt-2 text-2xl font-black">Asset Allocation</h3>
+              <h3 className="mt-2 text-2xl font-black text-white">
+                Asset Allocation
+              </h3>
             </div>
 
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-black text-zinc-300">
+            <span className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black text-zinc-300">
               Live %
             </span>
           </div>
 
-          <div className="h-[360px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip content={<AllocationTooltip />} />
+          <DonutChart assets={displayAssets} />
 
-                <Pie
-                  data={chartData}
-                  dataKey="allocationPercent"
-                  nameKey="symbol"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={82}
-                  outerRadius={130}
-                  paddingAngle={3}
-                  stroke="#05070d"
-                  strokeWidth={3}
+          {displayAssets.length > 0 ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {displayAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3"
                 >
-                  {chartData.map((asset, index) => (
-                    <Cell
-                      key={asset.id}
-                      fill={chartColors[index % chartColors.length]}
-                    />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="relative">
+                      <AssetLogo symbol={asset.symbol} size="sm" />
+                      <span
+                        className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border border-[#151823]"
+                        style={{ background: asset.color }}
+                      />
+                    </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {chartData.map((asset, index) => (
-              <div
-                key={asset.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <AssetLogo symbol={asset.symbol} size="xs" />
-                    <span
-                      className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border border-[#0b0d14]"
-                      style={{
-                        backgroundColor:
-                          chartColors[index % chartColors.length],
-                      }}
-                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-white">
+                        {asset.symbol}
+                      </p>
+                      <p className="text-xs capitalize text-zinc-500">
+                        {asset.type}
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <p className="text-sm font-black">{asset.symbol}</p>
-                    <p className="text-xs text-zinc-500">{asset.type}</p>
-                  </div>
+                  <p className="text-sm font-black text-yellow-300">
+                    {safeNumber(asset.allocationPercent).toFixed(2)}%
+                  </p>
                 </div>
-
-                <p className="text-sm font-black text-yellow-300">
-                  {asset.allocationPercent}%
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : null}
         </div>
 
-        <div className="glass rounded-[32px] p-6">
-          <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="rounded-[30px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.32)]">
+          <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-yellow-300">
+              <p className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
                 Bar Chart
               </p>
-
-              <h3 className="mt-2 text-2xl font-black">Value Breakdown</h3>
+              <h3 className="mt-2 text-2xl font-black text-white">
+                Value Breakdown
+              </h3>
             </div>
 
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-black text-zinc-300">
+            <span className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black text-zinc-300">
               USD Value
             </span>
           </div>
 
-          <div className="h-[420px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                margin={{ top: 12, right: 10, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid
-                  stroke="rgba(255,255,255,0.08)"
-                  vertical={false}
-                />
-
-                <XAxis
-                  dataKey="symbol"
-                  tick={{ fill: "#a1a1aa", fontSize: 12, fontWeight: 700 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <YAxis
-                  tickFormatter={shortUsd}
-                  tick={{ fill: "#a1a1aa", fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-
-                <Tooltip content={<ValueTooltip />} />
-
-                <Bar dataKey="chartValue" radius={[14, 14, 0, 0]}>
-                  {chartData.map((asset, index) => (
-                    <Cell
-                      key={asset.id}
-                      fill={chartColors[index % chartColors.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm leading-6 text-zinc-400">
-              Asset terbesar saat ini adalah{" "}
-              <span className="font-black text-yellow-300">
-                {chartData[0]?.symbol}
-              </span>{" "}
-              dengan value{" "}
-              <span className="font-black text-white">
-                {usd(chartData[0]?.currentValueUsd ?? 0)}
-              </span>
-              .
-            </p>
-          </div>
+          <BarChart assets={displayAssets} />
         </div>
       </div>
     </section>

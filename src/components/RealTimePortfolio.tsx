@@ -157,7 +157,7 @@ export default function RealTimePortfolio() {
 
           <p className="mt-4 max-w-3xl leading-8 text-zinc-400">
             Portfolio value dihitung otomatis dari harga crypto real-time dan
-            posisi saham manual. Holdings tampil publik, sementara average buy
+          posisi saham US live. Holdings tampil publik, sementara average buy
             disimpan di server dan tidak ditampilkan di website.
           </p>
         </div>
@@ -191,9 +191,9 @@ export default function RealTimePortfolio() {
           <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-300">
             Stock Source
           </p>
-          <h3 className="mt-2 font-black text-white">Manual Position</h3>
+          <h3 className="mt-2 font-black text-white">Live US Market Stock</h3>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            NVDA, BBCA, dan BBRI sementara memakai harga manual.
+            NVDA, AAPL, MSFT, dan QQQ memakai live US market quote dari Finnhub
           </p>
         </div>
 
